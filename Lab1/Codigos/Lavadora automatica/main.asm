@@ -10,3 +10,5 @@
 start:
     inc r16
     rjmp start
+	add r16,r17 
+	or r18,r19
