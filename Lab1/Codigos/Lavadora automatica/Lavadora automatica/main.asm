@@ -60,3 +60,53 @@ RESET:
     out   PORTD, data_portD
     out   PORTB, data_portB
     clr   carga
+	
+	;Comienzo de estados
+STAND_BY:
+    clr   carga
+    ldi   data_portD, (1<<LED_LISTO)
+    out   PORTD, data_portD
+    clr   data_portB
+    out   PORTB, data_portB
+
+SB_ESPERA_SELECCION:
+    sbic  PINC, PIN_SELECCION      ; si el pulsador de selección NO está presionado, salta
+    rjmp  SB_CHEQUEA_INICIO
+
+    rcall debounce_20ms
+    sbic  PINC, PIN_SELECCION      ; confirma que sigue presionado (evita rebote)
+    rjmp  SB_CHEQUEA_INICIO
+
+    inc   carga
+    cpi   carga, 3
+    brne  SB_ACTUALIZA_LED
+    clr   carga
+
+SB_ACTUALIZA_LED:
+    rcall actualiza_leds_fase_carga
+
+SB_ESPERA_SUELTA:                  ; espera a que se suelte el pulsador (anti-repique)
+    sbis  PINC, PIN_SELECCION
+    rjmp  SB_ESPERA_SUELTA
+
+SB_CHEQUEA_INICIO:
+    sbic  PINC, PIN_INICIO         ; si el pulsador de inicio NO está presionado, vuelve a esperar
+    rjmp  SB_ESPERA_SELECCION
+
+    sbic  PINC, PIN_PUERTA         ; exige puerta cerrada (Sensor puerta = 0 -> cerrada, activo bajo)
+    rjmp  SB_ESPERA_SELECCION
+
+    rcall debounce_20ms
+    rjmp  LLENADO
+ 
+LLENADO:
+    sbr   data_portB, (1<<VALVULA)
+    out   PORTB, data_portB
+
+LL_ESPERA_SENSOR:
+    sbic  PINC, PIN_LLENADO         ; espera hasta Sensor_llenado = 1 (activo bajo -> pin en 0)
+    rjmp  LL_ESPERA_SENSOR
+
+    cbr   data_portB, (1<<VALVULA)   ; cierra la válvula: ya no hace falta seguir llenando
+    out   PORTB, data_portB
+    rjmp  LAVADO
