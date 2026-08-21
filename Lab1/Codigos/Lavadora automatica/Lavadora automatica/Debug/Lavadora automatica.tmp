@@ -1,0 +1,27 @@
+<ASSEMBLER_INFO>
+ <VERSION>2.2.8</VERSION>
+ <DEVICE>"ATmega328P"</DEVICE>
+ <WORKING_DIR>D:\Ing_Mecatronica\2do_semestre\Tec_micro\2026\Laboratorios\Lab1\Codigos\Lavadora automatica\Lavadora automatica\Debug</WORKING_DIR>
+ <INCLUDE_PATH>
+  <DIR>C:/Program Files (x86)\Atmel\Studio\7.0\Packs\atmel\ATmega_DFP\1.7.374\avrasm\inc</DIR>
+  <DIR>C:\Program Files (x86)\Atmel\Studio\7.0\toolchain\avr8\avrassembler\Include</DIR>
+  <DIR></DIR>
+ </INCLUDE_PATH>
+ <SOURCE_FILE>D:\Ing_Mecatronica\2do_semestre\Tec_micro\2026\Laboratorios\Lab1\Codigos\Lavadora automatica\Lavadora automatica\main.asm</SOURCE_FILE>
+ <INCLUDED_FILES>
+  <FILE>C:/Program Files (x86)\Atmel\Studio\7.0\Packs\atmel\ATmega_DFP\1.7.374\avrasm\inc\m328Pdef.inc</FILE>
+ </INCLUDED_FILES>
+ <OBJECT_FILES>
+  <FILE>D:\Ing_Mecatronica\2do_semestre\Tec_micro\2026\Laboratorios\Lab1\Codigos\Lavadora automatica\Lavadora automatica\Debug\Lavadora automatica.obj</FILE>
+ </OBJECT_FILES>
+ <HEX_FILES>
+  <FILE>Lavadora automatica.hex</FILE>
+ </HEX_FILES>
+ <OUTPUT_FILES>
+  <FILE>Lavadora automatica.map</FILE>
+  <FILE>Lavadora automatica.lss</FILE>
+ </OUTPUT_FILES>
+ <LABELS>
+  <RESET><FILE>D:\Ing_Mecatronica\2do_semestre\Tec_micro\2026\Laboratorios\Lab1\Codigos\Lavadora automatica\Lavadora automatica\main.asm</FILE><LINE>37</LINE></RESET>
+ </LABELS>
+</ASSEMBLER_INFO>
