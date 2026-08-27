@@ -111,3 +111,26 @@ LL_ESPERA_SENSOR:
     cbr   data_portB, (1<<VALVULA)   ; cierra la válvula: ya no hace falta seguir llenando
     out   PORTB, data_portB
     rjmp  LAVADO
+
+LAVADO:
+    ldi   temp, (1<<LED_LAVADO)
+    rcall fija_led_fase             ; prende LED de fase (Lavado) + LED de carga
+    ldi   ciclo_lav, 5
+
+LAV_CICLO:
+    
+    sbr   portB_img, (1<<MOTOR_DER)
+    out   PORTB, portB_img
+    ldi   segundos, 2
+    add   segundos, carga            ; segundos = 2 + Carga
+    rcall delay_segundos
+
+   
+    cbr   portB_img, (1<<MOTOR_DER)
+    out   PORTB, portB_img
+    ldi   segundos, 1
+    add   segundos, carga            ; segundos = 1 + Carga
+    rcall delay_segundos
+
+    dec   ciclo_lav
+    brne  LAV_CICLO                  ; repite hasta completar 5 ciclos
