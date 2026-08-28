@@ -1,5 +1,4 @@
 .include "m328Pdef.inc"
-;PRueba push
 
 ; Defino sinonimos para los registros a utilizar
 
@@ -119,18 +118,72 @@ LAVADO:
 
 LAV_CICLO:
     
-    sbr   portB_img, (1<<MOTOR_DER)
-    out   PORTB, portB_img
+    sbr   data_portB, (1<<MOTOR_DER)
+    out   PORTB, data_portB
     ldi   segundos, 2
     add   segundos, carga            ; segundos = 2 + Carga
     rcall delay_segundos
 
    
-    cbr   portB_img, (1<<MOTOR_DER)
-    out   PORTB, portB_img
+    cbr   data_portB, (1<<MOTOR_DER)
+    out   PORTB, data_portB
     ldi   segundos, 1
     add   segundos, carga            ; segundos = 1 + Carga
     rcall delay_segundos
 
     dec   ciclo_lav
     brne  LAV_CICLO                  ; repite hasta completar 5 ciclos
+
+	rjmp CENTRIFUGADO
+
+; Ciclo de centrifugado
+CENTRIFUGADO:
+	ldi temp, (1<<LED_CENTRIF)
+	rcall fija_led_fase
+
+	sbr data_portB, (1<<MOTOR_DER)
+	out PORTB, data_portB
+
+	ldi segundos, 15 ; Cargo los 15 seg iniciales 
+	add segundos, carga 
+	add segundos, carga
+	add segundos, carga ; Ecuacion para el tiempo en funcion de la carga seleccionada "segundos= 15+3 * carga"
+	rcall delay_segundos
+
+	cbr data_portB, (1<<MOTOR_DER)
+	out PORTB, data_portB
+	rjmp SECADO_DERECHA
+
+SECADO_DERECHA:
+	ldi temp, (1<<LED_SECADO)
+	rcall fija_led_fase
+	sbr   data_portB, (1<<MOTOR_DER)
+    out   PORTB, data_portB
+    ldi   segundos, 5
+    add   segundos, carga
+    add   segundos, carga             ; segundos = 5 + 2*Carga
+    rcall delay_segundos
+    cbr   data_portB, (1<<MOTOR_DER)
+    out   PORTB, data_portB
+
+SECADO_ESPERA:
+    ; motor detenido (pausa entre giro derecha e izquierda)
+    ldi   segundos, 3
+    add   segundos, carga
+    add   segundos, carga             ; segundos = 3 + 2*Carga
+    rcall delay_segundos
+
+
+
+
+delay_segundos:
+    push  segundos	
+DS_LOOP:
+    cpi   segundos, 0
+    breq  DS_FIN
+    rcall delay_1s
+    dec   segundos
+    rjmp  DS_LOOP
+DS_FIN:
+    pop   segundos
+    ret
