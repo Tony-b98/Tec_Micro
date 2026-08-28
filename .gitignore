@@ -4,8 +4,30 @@
 # Permitir carpetas
 !*/
 
-# Mostrar solo archivos ASM
+# Archivos ASM
 !*.asm
+
+# Documentos PDF
+!*.pdf
+
+# Imágenes
+!*.png
+!*.jpg
+!*.jpeg
+!*.gif
+!*.bmp
+!*.svg
+!*.webp
+
+# Archivos de Proteus
+!*.pdsprj
+!*.dsn
+!*.sch
+!*.bin
+!*.pdsprj
+!*.dsn
+!*.ly
+!*.lb
 
 # También mostrar el .gitignore
 !.gitignore
