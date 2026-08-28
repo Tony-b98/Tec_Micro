@@ -19,6 +19,9 @@
 !*.svg
 !*.webp
 
+#Draw io
+!*.drawio
+
 # Archivos de Proteus
 !*.pdsprj
 !*.dsn

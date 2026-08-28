@@ -1,0 +1,311 @@
+<mxfile host="Electron" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) draw.io/28.1.2 Chrome/138.0.7204.243 Electron/37.4.0 Safari/537.36" version="28.1.2">
+  <diagram name="Page-1" id="xE_1V6WaMRmy7C5s061M">
+    <mxGraphModel dx="1028" dy="611" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="nFiALLmrrPvXpW0qgTAO-2" value="" style="ellipse;whiteSpace=wrap;html=1;shapeInside=1;aspect=fixed;" parent="1" vertex="1">
+          <mxGeometry x="60" y="230" width="180" height="180" as="geometry" />
+        </mxCell>
+        <mxCell id="nFiALLmrrPvXpW0qgTAO-3" value="STAND BY" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" parent="1" vertex="1">
+          <mxGeometry x="100" y="240" width="80" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="nFiALLmrrPvXpW0qgTAO-20" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=1;entryDx=0;entryDy=0;" parent="1" target="nFiALLmrrPvXpW0qgTAO-8" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="260" y="280" />
+              <mxPoint x="260" y="173.65" />
+            </Array>
+            <mxPoint x="230" y="280" as="sourcePoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="nFiALLmrrPvXpW0qgTAO-6" value="&lt;span style=&quot;font-size: 11px; text-align: left;&quot;&gt;LEDs: Listo=1&lt;/span&gt;&lt;br style=&quot;font-size: 11px; text-align: left;&quot;&gt;&lt;br style=&quot;font-size: 11px; text-align: left;&quot;&gt;&lt;span style=&quot;font-size: 11px; text-align: left;&quot;&gt;Motor: Der=0 / Izq=0&lt;/span&gt;&lt;br style=&quot;font-size: 11px; text-align: left;&quot;&gt;&lt;br style=&quot;font-size: 11px; text-align: left;&quot;&gt;&lt;span style=&quot;font-size: 11px; text-align: left;&quot;&gt;Válvula llenado: 0&lt;/span&gt;" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" parent="1" vertex="1">
+          <mxGeometry x="65" y="290" width="160" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="nFiALLmrrPvXpW0qgTAO-7" value="" style="endArrow=none;html=1;rounded=0;" parent="1" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="70" y="279" as="sourcePoint" />
+            <mxPoint x="230" y="279" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="DpsXmCtlaw3l-Kc89NVM-2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="nFiALLmrrPvXpW0qgTAO-8" target="nFiALLmrrPvXpW0qgTAO-12">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="nFiALLmrrPvXpW0qgTAO-8" value="" style="ellipse;whiteSpace=wrap;html=1;shapeInside=1;aspect=fixed;" parent="1" vertex="1">
+          <mxGeometry x="380" y="20" width="180" height="180" as="geometry" />
+        </mxCell>
+        <mxCell id="nFiALLmrrPvXpW0qgTAO-9" value="CARGA LIGERA" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" parent="1" vertex="1">
+          <mxGeometry x="410" y="30" width="110" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="nFiALLmrrPvXpW0qgTAO-11" value="" style="endArrow=none;html=1;rounded=0;" parent="1" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="390" y="70" as="sourcePoint" />
+            <mxPoint x="550" y="70" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="DpsXmCtlaw3l-Kc89NVM-3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="nFiALLmrrPvXpW0qgTAO-12" target="nFiALLmrrPvXpW0qgTAO-16">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="nFiALLmrrPvXpW0qgTAO-12" value="" style="ellipse;whiteSpace=wrap;html=1;shapeInside=1;aspect=fixed;" parent="1" vertex="1">
+          <mxGeometry x="380" y="230" width="180" height="180" as="geometry" />
+        </mxCell>
+        <mxCell id="nFiALLmrrPvXpW0qgTAO-13" value="CARGA MEDIA" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" parent="1" vertex="1">
+          <mxGeometry x="410" y="240" width="120" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="nFiALLmrrPvXpW0qgTAO-15" value="" style="endArrow=none;html=1;rounded=0;" parent="1" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="390" y="280" as="sourcePoint" />
+            <mxPoint x="550" y="280" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="nFiALLmrrPvXpW0qgTAO-41" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=1;entryDx=0;entryDy=0;" parent="1" source="nFiALLmrrPvXpW0qgTAO-16" target="nFiALLmrrPvXpW0qgTAO-31" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="nFiALLmrrPvXpW0qgTAO-16" value="" style="ellipse;whiteSpace=wrap;html=1;shapeInside=1;aspect=fixed;" parent="1" vertex="1">
+          <mxGeometry x="380" y="450" width="180" height="180" as="geometry" />
+        </mxCell>
+        <mxCell id="nFiALLmrrPvXpW0qgTAO-17" value="CARGA PESADA" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" parent="1" vertex="1">
+          <mxGeometry x="390" y="460" width="150" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="nFiALLmrrPvXpW0qgTAO-19" value="" style="endArrow=none;html=1;rounded=0;" parent="1" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="390" y="500" as="sourcePoint" />
+            <mxPoint x="550" y="500" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="nFiALLmrrPvXpW0qgTAO-23" value="&lt;span style=&quot;font-size: 11px; white-space: nowrap; background-color: rgb(255, 255, 255);&quot;&gt;Pulsador selección=1&lt;/span&gt;" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" parent="1" vertex="1">
+          <mxGeometry x="220" y="130" width="150" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="nFiALLmrrPvXpW0qgTAO-24" value="&lt;span style=&quot;font-size: 11px; white-space: nowrap; background-color: rgb(255, 255, 255);&quot;&gt;Pulsador selección=1&lt;/span&gt;" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" parent="1" vertex="1">
+          <mxGeometry x="325" y="200" width="160" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="nFiALLmrrPvXpW0qgTAO-25" value="&lt;span style=&quot;font-size: 11px; white-space: nowrap; background-color: rgb(255, 255, 255);&quot;&gt;Pulsador selección=1&lt;/span&gt;" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" parent="1" vertex="1">
+          <mxGeometry x="340" y="410" width="130" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="nFiALLmrrPvXpW0qgTAO-53" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" parent="1" source="nFiALLmrrPvXpW0qgTAO-27" target="nFiALLmrrPvXpW0qgTAO-49" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1240" y="330.11764705882354" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="nFiALLmrrPvXpW0qgTAO-27" value="" style="ellipse;whiteSpace=wrap;html=1;shapeInside=1;aspect=fixed;" parent="1" vertex="1">
+          <mxGeometry x="980" y="240" width="180" height="180" as="geometry" />
+        </mxCell>
+        <mxCell id="nFiALLmrrPvXpW0qgTAO-28" value="LAVADO-GIRO" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" parent="1" vertex="1">
+          <mxGeometry x="1010" y="250" width="110" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="nFiALLmrrPvXpW0qgTAO-29" value="&lt;span style=&quot;font-size: 11px; text-align: left;&quot;&gt;Tiempo = (2+Carga) seg.&lt;/span&gt;&lt;br style=&quot;font-size: 11px; text-align: left;&quot;&gt;&lt;br style=&quot;font-size: 11px; text-align: left;&quot;&gt;&lt;span style=&quot;font-size: 11px; text-align: left;&quot;&gt;LEDs: Lavado=1, Carga X=1&lt;/span&gt;&lt;br style=&quot;font-size: 11px; text-align: left;&quot;&gt;&lt;br style=&quot;font-size: 11px; text-align: left;&quot;&gt;&lt;span style=&quot;font-size: 11px; text-align: left;&quot;&gt;Motor: Der=1 / Izq=0&lt;/span&gt;&lt;br style=&quot;font-size: 11px; text-align: left;&quot;&gt;&lt;br style=&quot;font-size: 11px; text-align: left;&quot;&gt;&lt;span style=&quot;font-size: 11px; text-align: left;&quot;&gt;Válvula llenado: 0&lt;/span&gt;" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" parent="1" vertex="1">
+          <mxGeometry x="985" y="300" width="160" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="nFiALLmrrPvXpW0qgTAO-30" value="" style="endArrow=none;html=1;rounded=0;" parent="1" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="990" y="290" as="sourcePoint" />
+            <mxPoint x="1150" y="290" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="nFiALLmrrPvXpW0qgTAO-31" value="" style="ellipse;whiteSpace=wrap;html=1;shapeInside=1;aspect=fixed;" parent="1" vertex="1">
+          <mxGeometry x="700" y="240" width="180" height="180" as="geometry" />
+        </mxCell>
+        <mxCell id="nFiALLmrrPvXpW0qgTAO-32" value="LLENADO" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" parent="1" vertex="1">
+          <mxGeometry x="730" y="250" width="110" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="nFiALLmrrPvXpW0qgTAO-34" value="" style="endArrow=none;html=1;rounded=0;" parent="1" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="710" y="290" as="sourcePoint" />
+            <mxPoint x="870" y="290" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="nFiALLmrrPvXpW0qgTAO-35" value="&lt;span style=&quot;font-size: 11px; text-align: left;&quot;&gt;LEDs: Listo=1, Carga Ligera=1&lt;/span&gt;&lt;br style=&quot;font-size: 11px; text-align: left;&quot;&gt;&lt;br style=&quot;font-size: 11px; text-align: left;&quot;&gt;&lt;span style=&quot;font-size: 11px; text-align: left;&quot;&gt;Motor: Der=0 / Izq=0&lt;/span&gt;&lt;br style=&quot;font-size: 11px; text-align: left;&quot;&gt;&lt;br style=&quot;font-size: 11px; text-align: left;&quot;&gt;&lt;span style=&quot;font-size: 11px; text-align: left;&quot;&gt;Válvula llenado: 0&lt;/span&gt;&lt;br style=&quot;font-size: 11px; text-align: left;&quot;&gt;&lt;br style=&quot;font-size: 11px; text-align: left;&quot;&gt;&lt;b style=&quot;font-size: 11px; text-align: left;&quot;&gt;Fija Carga=0&lt;/b&gt;" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" parent="1" vertex="1">
+          <mxGeometry x="390" y="70" width="160" height="115" as="geometry" />
+        </mxCell>
+        <mxCell id="nFiALLmrrPvXpW0qgTAO-36" value="&lt;span style=&quot;font-size: 11px; text-align: left;&quot;&gt;LEDs: Listo=1, Carga Media=1&lt;/span&gt;&lt;br style=&quot;font-size: 11px; text-align: left;&quot;&gt;&lt;br style=&quot;font-size: 11px; text-align: left;&quot;&gt;&lt;span style=&quot;font-size: 11px; text-align: left;&quot;&gt;Motor: Der=0 / Izq=0&lt;/span&gt;&lt;br style=&quot;font-size: 11px; text-align: left;&quot;&gt;&lt;br style=&quot;font-size: 11px; text-align: left;&quot;&gt;&lt;span style=&quot;font-size: 11px; text-align: left;&quot;&gt;Válvula llenado: 0&lt;/span&gt;&lt;br style=&quot;font-size: 11px; text-align: left;&quot;&gt;&lt;br style=&quot;font-size: 11px; text-align: left;&quot;&gt;&lt;b style=&quot;font-size: 11px; text-align: left;&quot;&gt;Fija Carga=1&lt;/b&gt;" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" parent="1" vertex="1">
+          <mxGeometry x="375" y="280" width="180" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="DpsXmCtlaw3l-Kc89NVM-4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;" edge="1" parent="1" source="nFiALLmrrPvXpW0qgTAO-37">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="310" y="180" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="nFiALLmrrPvXpW0qgTAO-37" value="&lt;span style=&quot;font-size: 11px; text-align: left;&quot;&gt;LEDs: Listo=1, Carga Pesada=1&lt;/span&gt;&lt;br style=&quot;font-size: 11px; text-align: left;&quot;&gt;&lt;br style=&quot;font-size: 11px; text-align: left;&quot;&gt;&lt;span style=&quot;font-size: 11px; text-align: left;&quot;&gt;Motor: Der=0 / Izq=0&lt;/span&gt;&lt;br style=&quot;font-size: 11px; text-align: left;&quot;&gt;&lt;br style=&quot;font-size: 11px; text-align: left;&quot;&gt;&lt;span style=&quot;font-size: 11px; text-align: left;&quot;&gt;Válvula llenado: 0&lt;/span&gt;&lt;br style=&quot;font-size: 11px; text-align: left;&quot;&gt;&lt;br style=&quot;font-size: 11px; text-align: left;&quot;&gt;&lt;b style=&quot;font-size: 11px; text-align: left;&quot;&gt;Fija Carga=2&lt;/b&gt;" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" parent="1" vertex="1">
+          <mxGeometry x="390" y="510" width="160" height="115" as="geometry" />
+        </mxCell>
+        <mxCell id="nFiALLmrrPvXpW0qgTAO-38" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.377;entryY=0.026;entryDx=0;entryDy=0;entryPerimeter=0;" parent="1" source="nFiALLmrrPvXpW0qgTAO-8" target="nFiALLmrrPvXpW0qgTAO-31" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="nFiALLmrrPvXpW0qgTAO-40" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;" parent="1" source="nFiALLmrrPvXpW0qgTAO-12" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="700" y="319" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="nFiALLmrrPvXpW0qgTAO-43" value="&lt;span style=&quot;font-size: 11px; text-align: left;&quot;&gt;LEDs: Listo=1, Carga X=1&lt;/span&gt;&lt;br style=&quot;font-size: 11px; text-align: left;&quot;&gt;&lt;br style=&quot;font-size: 11px; text-align: left;&quot;&gt;&lt;span style=&quot;font-size: 11px; text-align: left;&quot;&gt;Motor: Der=0 / Izq=0&lt;/span&gt;&lt;br style=&quot;font-size: 11px; text-align: left;&quot;&gt;&lt;br style=&quot;font-size: 11px; text-align: left;&quot;&gt;&lt;span style=&quot;font-size: 11px; text-align: left;&quot;&gt;Válvula llenado: 1&lt;/span&gt;&lt;br style=&quot;font-size: 11px; text-align: left;&quot;&gt;&lt;span style=&quot;font-size: 11px; text-align: left;&quot;&gt;(hasta Sensor_llenado=1)&lt;/span&gt;" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" parent="1" vertex="1">
+          <mxGeometry x="715" y="295" width="150" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="nFiALLmrrPvXpW0qgTAO-44" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=-0.043;entryY=0.337;entryDx=0;entryDy=0;entryPerimeter=0;" parent="1" source="nFiALLmrrPvXpW0qgTAO-31" target="nFiALLmrrPvXpW0qgTAO-29" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="nFiALLmrrPvXpW0qgTAO-45" value="&lt;span style=&quot;font-size: 11px; white-space: nowrap; background-color: rgb(255, 255, 255);&quot;&gt;Pulsador inicio=1&lt;/span&gt;&lt;br style=&quot;font-size: 11px; white-space: nowrap;&quot;&gt;&lt;span style=&quot;font-size: 11px; white-space: nowrap; background-color: rgb(255, 255, 255);&quot;&gt;Sensor puerta=1&lt;/span&gt;" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" parent="1" vertex="1">
+          <mxGeometry x="620" y="70" width="80" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="nFiALLmrrPvXpW0qgTAO-46" value="&lt;span style=&quot;font-size: 11px; white-space: nowrap; background-color: rgb(255, 255, 255);&quot;&gt;Pulsador inicio=1&lt;/span&gt;&lt;br style=&quot;font-size: 11px; white-space: nowrap;&quot;&gt;&lt;span style=&quot;font-size: 11px; white-space: nowrap; background-color: rgb(255, 255, 255);&quot;&gt;Sensor puerta=1&lt;/span&gt;" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" parent="1" vertex="1">
+          <mxGeometry x="590" y="280" width="80" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="nFiALLmrrPvXpW0qgTAO-47" value="&lt;span style=&quot;font-size: 11px; white-space: nowrap; background-color: rgb(255, 255, 255);&quot;&gt;Pulsador inicio=1&lt;/span&gt;&lt;br style=&quot;font-size: 11px; white-space: nowrap;&quot;&gt;&lt;span style=&quot;font-size: 11px; white-space: nowrap; background-color: rgb(255, 255, 255);&quot;&gt;Sensor puerta=1&lt;/span&gt;" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" parent="1" vertex="1">
+          <mxGeometry x="600" y="500" width="80" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="nFiALLmrrPvXpW0qgTAO-48" value="Sensor llenado=1" style="text;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+          <mxGeometry x="880" y="295" width="130" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="nFiALLmrrPvXpW0qgTAO-55" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" parent="1" source="nFiALLmrrPvXpW0qgTAO-49" target="nFiALLmrrPvXpW0qgTAO-27" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="nFiALLmrrPvXpW0qgTAO-71" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" parent="1" source="nFiALLmrrPvXpW0qgTAO-49" target="nFiALLmrrPvXpW0qgTAO-61" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1630" y="330" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="nFiALLmrrPvXpW0qgTAO-49" value="" style="ellipse;whiteSpace=wrap;html=1;shapeInside=1;aspect=fixed;" parent="1" vertex="1">
+          <mxGeometry x="1335" y="240" width="180" height="180" as="geometry" />
+        </mxCell>
+        <mxCell id="nFiALLmrrPvXpW0qgTAO-50" value="LAVADO-PAUSA" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" parent="1" vertex="1">
+          <mxGeometry x="1365" y="250" width="110" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="nFiALLmrrPvXpW0qgTAO-51" value="&lt;span style=&quot;font-size: 11px; text-align: left;&quot;&gt;Tiempo = (1+Carga) seg&lt;/span&gt;&lt;br style=&quot;font-size: 11px; text-align: left;&quot;&gt;&lt;br style=&quot;font-size: 11px; text-align: left;&quot;&gt;&lt;span style=&quot;font-size: 11px; text-align: left;&quot;&gt;LEDs: Lavado=1, Carga X=1&lt;/span&gt;&lt;br style=&quot;font-size: 11px; text-align: left;&quot;&gt;&lt;br style=&quot;font-size: 11px; text-align: left;&quot;&gt;&lt;span style=&quot;font-size: 11px; text-align: left;&quot;&gt;Motor: Der=0 / Izq=0&lt;/span&gt;&lt;br style=&quot;font-size: 11px; text-align: left;&quot;&gt;&lt;br style=&quot;font-size: 11px; text-align: left;&quot;&gt;&lt;span style=&quot;font-size: 11px; text-align: left;&quot;&gt;Válvula llenado: 0&lt;/span&gt;" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" parent="1" vertex="1">
+          <mxGeometry x="1330" y="300" width="180" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="nFiALLmrrPvXpW0qgTAO-52" value="" style="endArrow=none;html=1;rounded=0;" parent="1" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="1345" y="290" as="sourcePoint" />
+            <mxPoint x="1505" y="290" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="nFiALLmrrPvXpW0qgTAO-54" value="Tiempo=(2+Carga)seg" style="text;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+          <mxGeometry x="1180" y="290" width="150" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="nFiALLmrrPvXpW0qgTAO-56" value="x5 · Tiempo=(1+Carga)seg" style="text;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+          <mxGeometry x="1170" y="450" width="180" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="nFiALLmrrPvXpW0qgTAO-61" value="" style="ellipse;whiteSpace=wrap;html=1;shapeInside=1;aspect=fixed;" parent="1" vertex="1">
+          <mxGeometry x="1635" y="240" width="180" height="180" as="geometry" />
+        </mxCell>
+        <mxCell id="nFiALLmrrPvXpW0qgTAO-62" value="CENTRIFUGADO" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" parent="1" vertex="1">
+          <mxGeometry x="1665" y="250" width="110" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="nFiALLmrrPvXpW0qgTAO-63" value="&lt;span style=&quot;font-size: 11px; text-align: left;&quot;&gt;Tiempo = (15+3·Carga) seg&lt;/span&gt;&lt;br style=&quot;font-size: 11px; text-align: left;&quot;&gt;&lt;br style=&quot;font-size: 11px; text-align: left;&quot;&gt;&lt;span style=&quot;font-size: 11px; text-align: left;&quot;&gt;LEDs: Centrifugado=1, Carga X=1&lt;/span&gt;&lt;br style=&quot;font-size: 11px; text-align: left;&quot;&gt;&lt;br style=&quot;font-size: 11px; text-align: left;&quot;&gt;&lt;span style=&quot;font-size: 11px; text-align: left;&quot;&gt;Motor: Der=1 / Izq=0&lt;/span&gt;&lt;br style=&quot;font-size: 11px; text-align: left;&quot;&gt;&lt;br style=&quot;font-size: 11px; text-align: left;&quot;&gt;&lt;span style=&quot;font-size: 11px; text-align: left;&quot;&gt;Válvula llenado: 0&lt;/span&gt;" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" parent="1" vertex="1">
+          <mxGeometry x="1645" y="290" width="150" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="nFiALLmrrPvXpW0qgTAO-64" value="" style="endArrow=none;html=1;rounded=0;" parent="1" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="1645" y="290" as="sourcePoint" />
+            <mxPoint x="1805" y="290" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="nFiALLmrrPvXpW0qgTAO-65" value="" style="ellipse;whiteSpace=wrap;html=1;shapeInside=1;aspect=fixed;" parent="1" vertex="1">
+          <mxGeometry x="1970" y="240" width="180" height="180" as="geometry" />
+        </mxCell>
+        <mxCell id="nFiALLmrrPvXpW0qgTAO-66" value="SECADO DERECHA" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" parent="1" vertex="1">
+          <mxGeometry x="1992.5" y="255" width="130" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="nFiALLmrrPvXpW0qgTAO-96" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" parent="1" source="nFiALLmrrPvXpW0qgTAO-67" target="nFiALLmrrPvXpW0qgTAO-94" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="2167.5000000000005" y="370" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="nFiALLmrrPvXpW0qgTAO-67" value="&lt;span style=&quot;font-size: 11px; text-align: left;&quot;&gt;Tiempo = (5+2·Carga) seg&lt;/span&gt;&lt;br style=&quot;font-size: 11px; text-align: left;&quot;&gt;&lt;br style=&quot;font-size: 11px; text-align: left;&quot;&gt;&lt;span style=&quot;font-size: 11px; text-align: left;&quot;&gt;LEDs: Secado=1, Carga X=1&lt;/span&gt;&lt;br style=&quot;font-size: 11px; text-align: left;&quot;&gt;&lt;br style=&quot;font-size: 11px; text-align: left;&quot;&gt;&lt;span style=&quot;font-size: 11px; text-align: left;&quot;&gt;Motor: Der=1 / Izq=0&lt;/span&gt;&lt;br style=&quot;font-size: 11px; text-align: left;&quot;&gt;&lt;br style=&quot;font-size: 11px; text-align: left;&quot;&gt;&lt;span style=&quot;font-size: 11px; text-align: left;&quot;&gt;Válvula llenado: 0&lt;/span&gt;" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" parent="1" vertex="1">
+          <mxGeometry x="1972.5" y="280" width="175" height="115" as="geometry" />
+        </mxCell>
+        <mxCell id="nFiALLmrrPvXpW0qgTAO-68" value="" style="endArrow=none;html=1;rounded=0;" parent="1" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="1982.5" y="285" as="sourcePoint" />
+            <mxPoint x="2142.5" y="285" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="nFiALLmrrPvXpW0qgTAO-74" value="tras 5 ciclos" style="text;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+          <mxGeometry x="1535" y="340" width="100" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="nFiALLmrrPvXpW0qgTAO-75" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.01;entryY=0.559;entryDx=0;entryDy=0;entryPerimeter=0;exitX=0.997;exitY=0.554;exitDx=0;exitDy=0;exitPerimeter=0;" parent="1" source="nFiALLmrrPvXpW0qgTAO-61" target="nFiALLmrrPvXpW0qgTAO-65" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1820" y="340" as="sourcePoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="nFiALLmrrPvXpW0qgTAO-76" value="Tiempo=(5+2·Carga)seg" style="text;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+          <mxGeometry x="2160" y="350" width="160" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="nFiALLmrrPvXpW0qgTAO-77" value="" style="ellipse;whiteSpace=wrap;html=1;shapeInside=1;aspect=fixed;" parent="1" vertex="1">
+          <mxGeometry x="2630" y="240" width="180" height="180" as="geometry" />
+        </mxCell>
+        <mxCell id="nFiALLmrrPvXpW0qgTAO-78" value="SECADO IZQUIERDA" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" parent="1" vertex="1">
+          <mxGeometry x="2652.5" y="255" width="130" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="nFiALLmrrPvXpW0qgTAO-79" value="&lt;span style=&quot;font-size: 11px; text-align: left;&quot;&gt;Tiempo = (5+2·Carga) seg&lt;/span&gt;&lt;br style=&quot;font-size: 11px; text-align: left;&quot;&gt;&lt;br style=&quot;font-size: 11px; text-align: left;&quot;&gt;&lt;span style=&quot;font-size: 11px; text-align: left;&quot;&gt;LEDs: Secado=1, Carga X=1&lt;/span&gt;&lt;br style=&quot;font-size: 11px; text-align: left;&quot;&gt;&lt;br style=&quot;font-size: 11px; text-align: left;&quot;&gt;&lt;span style=&quot;font-size: 11px; text-align: left;&quot;&gt;Motor: Der=0 / Izq=1&lt;/span&gt;&lt;br style=&quot;font-size: 11px; text-align: left;&quot;&gt;&lt;br style=&quot;font-size: 11px; text-align: left;&quot;&gt;&lt;span style=&quot;font-size: 11px; text-align: left;&quot;&gt;Válvula llenado: 0&lt;/span&gt;" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" parent="1" vertex="1">
+          <mxGeometry x="2632.5" y="280" width="175" height="115" as="geometry" />
+        </mxCell>
+        <mxCell id="nFiALLmrrPvXpW0qgTAO-80" value="" style="endArrow=none;html=1;rounded=0;" parent="1" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="2642.5" y="285" as="sourcePoint" />
+            <mxPoint x="2802.5" y="285" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="nFiALLmrrPvXpW0qgTAO-81" value="" style="ellipse;whiteSpace=wrap;html=1;shapeInside=1;aspect=fixed;" parent="1" vertex="1">
+          <mxGeometry x="2960" y="240" width="180" height="180" as="geometry" />
+        </mxCell>
+        <mxCell id="nFiALLmrrPvXpW0qgTAO-82" value="FIN DEL PROCESO" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" parent="1" vertex="1">
+          <mxGeometry x="2982.5" y="255" width="130" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="nFiALLmrrPvXpW0qgTAO-83" value="&lt;span style=&quot;font-size: 11px; text-align: left;&quot;&gt;LEDs: Fin del proceso=1&lt;/span&gt;&lt;br style=&quot;font-size: 11px; text-align: left;&quot;&gt;&lt;span style=&quot;font-size: 11px; text-align: left;&quot;&gt;(resto=0)&lt;/span&gt;&lt;br style=&quot;font-size: 11px; text-align: left;&quot;&gt;&lt;br style=&quot;font-size: 11px; text-align: left;&quot;&gt;&lt;span style=&quot;font-size: 11px; text-align: left;&quot;&gt;Motor: Der=0 / Izq=0&lt;/span&gt;&lt;br style=&quot;font-size: 11px; text-align: left;&quot;&gt;&lt;br style=&quot;font-size: 11px; text-align: left;&quot;&gt;&lt;span style=&quot;font-size: 11px; text-align: left;&quot;&gt;Válvula llenado: 0&lt;/span&gt;" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" parent="1" vertex="1">
+          <mxGeometry x="2962.5" y="280" width="175" height="115" as="geometry" />
+        </mxCell>
+        <mxCell id="nFiALLmrrPvXpW0qgTAO-84" value="" style="endArrow=none;html=1;rounded=0;" parent="1" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="2972.5" y="285" as="sourcePoint" />
+            <mxPoint x="3132.5" y="285" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="nFiALLmrrPvXpW0qgTAO-86" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=-0.013;entryY=0.43;entryDx=0;entryDy=0;entryPerimeter=0;" parent="1" source="nFiALLmrrPvXpW0qgTAO-77" target="nFiALLmrrPvXpW0qgTAO-83" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="nFiALLmrrPvXpW0qgTAO-88" value="Tiempo=(5+2·Carga)seg" style="text;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+          <mxGeometry x="2820" y="340" width="160" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="nFiALLmrrPvXpW0qgTAO-90" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;" parent="1" source="nFiALLmrrPvXpW0qgTAO-81" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="2720" y="659.86" />
+              <mxPoint x="108.57" y="659.86" />
+            </Array>
+            <mxPoint x="2606.24" y="700.0014285714287" as="sourcePoint" />
+            <mxPoint x="130" y="410.72" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="nFiALLmrrPvXpW0qgTAO-91" value="Tiempo=2 seg" style="text;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+          <mxGeometry x="1515" y="625" width="150" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="nFiALLmrrPvXpW0qgTAO-92" value="" style="ellipse;whiteSpace=wrap;html=1;shapeInside=1;aspect=fixed;" parent="1" vertex="1">
+          <mxGeometry x="2310" y="240" width="180" height="180" as="geometry" />
+        </mxCell>
+        <mxCell id="nFiALLmrrPvXpW0qgTAO-93" value="SECADO EN ESPERA" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" parent="1" vertex="1">
+          <mxGeometry x="2332.5" y="255" width="130" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="nFiALLmrrPvXpW0qgTAO-97" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" parent="1" source="nFiALLmrrPvXpW0qgTAO-94" target="nFiALLmrrPvXpW0qgTAO-79" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="nFiALLmrrPvXpW0qgTAO-94" value="&lt;span style=&quot;font-size: 11px; text-align: left;&quot;&gt;Tiempo = 3+2·Carga seg&lt;/span&gt;&lt;br style=&quot;font-size: 11px; text-align: left;&quot;&gt;&lt;br style=&quot;font-size: 11px; text-align: left;&quot;&gt;&lt;span style=&quot;font-size: 11px; text-align: left;&quot;&gt;LEDs: Secado=1, Carga X=1&lt;/span&gt;&lt;br style=&quot;font-size: 11px; text-align: left;&quot;&gt;&lt;br style=&quot;font-size: 11px; text-align: left;&quot;&gt;&lt;span style=&quot;font-size: 11px; text-align: left;&quot;&gt;Motor: Der=0 / Izq=0&lt;/span&gt;&lt;br style=&quot;font-size: 11px; text-align: left;&quot;&gt;&lt;br style=&quot;font-size: 11px; text-align: left;&quot;&gt;&lt;span style=&quot;font-size: 11px; text-align: left;&quot;&gt;Válvula llenado: 0&lt;/span&gt;" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" parent="1" vertex="1">
+          <mxGeometry x="2312.5" y="280" width="175" height="115" as="geometry" />
+        </mxCell>
+        <mxCell id="nFiALLmrrPvXpW0qgTAO-95" value="" style="endArrow=none;html=1;rounded=0;" parent="1" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="2322.5" y="285" as="sourcePoint" />
+            <mxPoint x="2482.5" y="285" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="nFiALLmrrPvXpW0qgTAO-98" value="Tiempo=(15+3·Carga)seg" style="text;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+          <mxGeometry x="1822.5" y="350" width="170" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="nFiALLmrrPvXpW0qgTAO-99" value="Tiempo=(3+2·Carga)seg" style="text;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+          <mxGeometry x="2487.5" y="350" width="160" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="DpsXmCtlaw3l-Kc89NVM-5" value="Pulsador selección=1" style="text;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="250" y="570" width="150" height="40" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
