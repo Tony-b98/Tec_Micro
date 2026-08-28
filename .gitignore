@@ -1,0 +1,11 @@
+# Ignorar todo
+*
+
+# Permitir carpetas
+!*/
+
+# Mostrar solo archivos ASM
+!*.asm
+
+# También mostrar el .gitignore
+!.gitignore
