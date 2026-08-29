@@ -7,8 +7,6 @@
 .def F       = r20
 .def C_flag  = r21
 .def aux     = r22
-.def aux2    = r23
-.def salida  = r24
 
 .equ S_CLEAR = 0
 .equ S_SUB   = 1
@@ -21,3 +19,75 @@
 
 .org 0x0000
     rjmp RESET_ALU
+
+
+RESET_ALU:
+    ldi temp, low(RAMEND)
+    out SPL, temp
+
+    ldi temp, high(RAMEND)
+    out SPH, temp
+
+    ldi temp, 0b00110000
+    out DDRC, temp
+
+    ldi temp, 0b00001111
+    out PORTC, temp
+
+    ldi temp, 0b00000000
+    out DDRD, temp
+
+    ldi temp, 0b11111100
+    out PORTD, temp
+
+    ldi temp, 0b00111110
+    out DDRB, temp
+
+    ldi temp, 0b00000001
+    out PORTB, temp
+
+    clr A
+    clr B
+    clr S
+    clr F
+    clr C_flag
+
+    rcall MOSTRAR_SALIDA
+
+
+MAIN_LOOP:
+    rcall LEER_ENTRADAS
+    rcall CALCULAR_ALU
+    rcall MOSTRAR_SALIDA
+    rjmp MAIN_LOOP
+
+
+LEER_ENTRADAS:
+    in temp, PINC
+    com temp
+    andi temp, 0x0F
+    mov A, temp
+
+    in temp, PIND
+    com temp
+
+    mov B, temp
+    lsr B
+    lsr B
+    andi B, 0x0F
+
+    clr S
+
+    sbrc temp, 6
+    ori S, 0b00000001
+
+    sbrc temp, 7
+    ori S, 0b00000010
+
+    in aux, PINB
+    com aux
+
+    sbrc aux, 0
+    ori S, 0b00000100
+
+    ret
