@@ -172,6 +172,28 @@ SECADO_ESPERA:
     add   segundos, carga
     add   segundos, carga             ; segundos = 3 + 2*Carga
     rcall delay_segundos
+	
+SECADO_IZQUIERDA:
+    sbr   portB_img, (1<<MOTOR_IZQ)
+    out   PORTB, portB_img
+    ldi   segundos, 5
+    add   segundos, carga
+    add   segundos, carga             ; segundos = 5 + 2*Carga
+    rcall delay_segundos
+    cbr   portB_img, (1<<MOTOR_IZQ)
+    out   PORTB, portB_img
+    rjmp  FIN_PROCESO
+
+FIN_PROCESO:
+    ldi   portD_img, (1<<LED_FIN)     ; el resto de LEDs de PORTD en 0
+    out   PORTD, portD_img
+    clr   portB_img                    ; LEDs de carga + actuadores en 0
+    out   PORTB, portB_img
+
+    ldi   segundos, 2
+    rcall delay_segundos
+
+    rjmp  STAND_BY
 
 
 
