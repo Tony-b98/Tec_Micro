@@ -195,6 +195,11 @@ FIN_PROCESO:
 
     rjmp  STAND_BY
 
+;	fija_led_fase:					;prueba fase
+ ;   mov   portD_img, temp            
+ ;
+  ;  cpi   carga, 0
+   ; breq  FLF_LIGERA
 
 
 
