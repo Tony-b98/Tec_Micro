@@ -104,7 +104,7 @@ LLENADO:
     out   PORTB, data_portB
 
 LL_ESPERA_SENSOR:
-    sbic  PINC, PIN_LLENADO         ; espera hasta Sensor_llenado = 1 (activo bajo -> pin en 0)
+    sbic  PINC, PIN_LLENADO         ; espera hasta que el sensor de llenado esté activo (pin = 0)
     rjmp  LL_ESPERA_SENSOR
 
     cbr   data_portB, (1<<VALVULA)   ; cierra la válvula: ya no hace falta seguir llenando
@@ -174,34 +174,91 @@ SECADO_ESPERA:
     rcall delay_segundos
 	
 SECADO_IZQUIERDA:
-    sbr   portB_img, (1<<MOTOR_IZQ)
-    out   PORTB, portB_img
+    sbr   data_portB, (1<<MOTOR_IZQ)
+    out   PORTB, data_portB
     ldi   segundos, 5
     add   segundos, carga
     add   segundos, carga             ; segundos = 5 + 2*Carga
     rcall delay_segundos
-    cbr   portB_img, (1<<MOTOR_IZQ)
-    out   PORTB, portB_img
+    cbr   data_portB, (1<<MOTOR_IZQ)
+    out   PORTB, data_portB
     rjmp  FIN_PROCESO
 
 FIN_PROCESO:
-    ldi   portD_img, (1<<LED_FIN)     ; el resto de LEDs de PORTD en 0
-    out   PORTD, portD_img
-    clr   portB_img                    ; LEDs de carga + actuadores en 0
-    out   PORTB, portB_img
+    ldi   data_portD, (1<<LED_FIN)     ; el resto de LEDs de PORTD en 0
+    out   PORTD, data_portD
+    clr   data_portB                ; LEDs de carga + actuadores en 0
+    out   PORTB, data_portB
 
     ldi   segundos, 2
     rcall delay_segundos
 
     rjmp  STAND_BY
 
-;	fija_led_fase:					;prueba fase
- ;   mov   portD_img, temp            
- ;
-  ;  cpi   carga, 0
-   ; breq  FLF_LIGERA
+; SUBRUTINA: fija led de fase y carga
+fija_led_fase:
+    mov   data_portD, temp             ; solo el LED de fase queda prendido en PORTD
 
+    cpi   carga, 0
+    breq  FLF_LIGERA
+    cpi   carga, 1
+    breq  FLF_MEDIA
 
+    ; --- pesada: LED en PORTB (D9) ---
+    out   PORTD, data_portD
+    sbr   data_portB, (1<<LED_C_PESADA)
+    cbr   data_portB, (1<<LED_C_MEDIA)
+    out   PORTB, data_portB
+    ret
+FLF_LIGERA:
+    ; --- ligera: LED en PORTD (D7) ---
+    ori   data_portD, (1<<LED_C_LIGERA)
+    out   PORTD, data_portD
+    ret
+FLF_MEDIA:
+    ; --- media: LED en PORTB (D8) ---
+    out   PORTD, data_portD
+    sbr   data_portB, (1<<LED_C_MEDIA)
+    cbr   data_portB, (1<<LED_C_PESADA)
+    out   PORTB, data_portB
+    ret
+
+; Actualiza LEDs de fase y carga
+actualiza_leds_fase_carga:
+    ldi   data_portD, (1<<LED_LISTO)
+    clr   data_portB
+
+    cpi   carga, 0
+    breq  ALF_LIGERA
+    cpi   carga, 1
+    breq  ALF_MEDIA
+    sbr   data_portB, (1<<LED_C_PESADA)
+    rjmp  ALF_SALIDA
+ALF_LIGERA:
+    ori   data_portD, (1<<LED_C_LIGERA)
+    rjmp  ALF_SALIDA
+ALF_MEDIA:
+    sbr   data_portB, (1<<LED_C_MEDIA)
+ALF_SALIDA:
+    out   PORTD, data_portD
+    out   PORTB, data_portB
+    ret
+
+; SUBRUTINA: debounce_20ms  (retardo corto anti-rebote)
+debounce_20ms: 
+   push  r22
+    push  r23
+    ldi   r22, 40
+DB1:
+    ldi   r23, 200
+DB2:
+    dec   r23
+    brne  DB2
+    dec   r22
+    brne  DB1
+    pop   r23
+    pop   r22
+    ret
 
 delay_segundos:
     push  segundos	
