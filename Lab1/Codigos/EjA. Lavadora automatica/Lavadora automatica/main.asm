@@ -271,3 +271,24 @@ DS_LOOP:
 DS_FIN:
     pop   segundos
     ret
+
+delay_1s:
+    push  r24
+    push  r25
+    push  r26
+    ldi   r26, 82       
+DL1:
+    ldi   r25, 250      
+DL2:
+    ldi   r24, 250        
+DL3:
+    dec   r24
+    brne  DL3
+    dec   r25
+    brne  DL2
+    dec   r26
+    brne  DL1
+    pop   r26
+    pop   r25
+    pop   r24
+    ret
