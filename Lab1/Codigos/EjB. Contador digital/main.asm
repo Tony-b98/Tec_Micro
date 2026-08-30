@@ -124,3 +124,64 @@ DEC_ESPERA_SUELTA:
 
 
 ;definir etiqueta DELAY_DEBOUNCE,MANEJAR_RST Y ACTUALIZAR_DISPLAY
+
+
+
+MANEJAR_RST:
+    rcall DELAY_DEBOUNCE    
+
+    ; Confirma que el pulsador continúa presionado
+    sbis PIND, BTN_RST
+    rjmp RST_CONFIRMADO
+    ret
+
+RST_CONFIRMADO:
+    ; Reinicia el contador al valor inicial
+    clr contador
+    rcall ACTUALIZAR_DISPLAY
+
+RST_ESPERA_SUELTA:
+    ; Espera hasta que el usuario libere el pulsador
+    sbis PIND, BTN_RST
+    rjmp RST_ESPERA_SUELTA
+
+    rcall DELAY_DEBOUNCE
+    ret
+
+
+ACTUALIZAR_DISPLAY:
+    ; Guarda los registros utilizados por la rutina
+    push temp
+    push aux
+    push ZL
+    push ZH
+
+    ; Z apunta al inicio de la tabla de patrones
+    ldi ZL, low(TABLA_7SEG*2)
+    ldi ZH, high(TABLA_7SEG*2)
+
+    ; Desplaza el puntero según el valor actual del contador
+    clr temp
+    add ZL, contador
+    adc ZH, temp
+
+    ; Lee de memoria de programa el patrón correspondiente
+    lpm temp, Z
+    mov aux, temp
+
+    ; Bits 0-5 controlan los segmentos A-F por PORTC
+    andi temp, 0x3F
+    out PORTC, temp
+
+    ; Bit 6 controla el segmento G mediante PB0
+    clr temp
+    sbrc aux, 6
+    ori temp, (1<<SEG_G)
+    out PORTB, temp
+
+    ; Recupera los registros
+    pop ZH
+    pop ZL
+    pop aux
+    pop temp
+    ret
