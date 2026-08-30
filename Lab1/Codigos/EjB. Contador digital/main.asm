@@ -185,3 +185,41 @@ ACTUALIZAR_DISPLAY:
     pop aux
     pop temp
     ret
+DELAY_DEBOUNCE:
+    push aux
+    push aux2
+    push aux3
+
+    ; Retardo por software mediante bucles anidados
+    ldi aux3, 2
+
+DD_PASS:
+;Carga el contador externo con su valor máximo
+    ldi aux, 255
+
+DD_OUTER:
+;Carga el contador interno con su valor máximo
+    ldi aux2, 255
+
+DD_INNER:
+;Decrementa el contador interno hasta llegar a 0
+    dec aux2
+    brne DD_INNER
+
+;Decrementa el contador externo y repite el bucle
+    dec aux
+    brne DD_OUTER
+
+;Repite el conjunto completo de retardos
+    dec aux3
+    brne DD_PASS
+
+;Recupera los registros aux. guardados
+    pop aux3
+    pop aux2
+    pop aux
+    ret
+
+	TABLA_7SEG:
+; Patrones correspondientes a los números 0 a 9
+    .db 0x3F, 0x06, 0x5B, 0x4F, 0x66, 0x6D, 0x7D, 0x07, 0x7F, 0x6F
