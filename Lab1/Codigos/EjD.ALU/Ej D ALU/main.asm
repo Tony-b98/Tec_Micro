@@ -1,5 +1,5 @@
 .include "m328Pdef.inc"
-
+; Definicion de registros
 .def temp    = r16
 .def A       = r17
 .def B       = r18
@@ -17,35 +17,37 @@
 .equ S_SHL   = 6
 .equ S_INC   = 7
 
+; Vector de reset
 .org 0x0000
     rjmp RESET_ALU
 
 
 RESET_ALU:
+	;Inicialización de SP
     ldi temp, low(RAMEND)
     out SPL, temp
-
-    ldi temp, high(RAMEND)
+	ldi temp, high(RAMEND)
     out SPH, temp
 
-    ldi temp, 0b00110000
+    ldi temp, 0x30
     out DDRC, temp
 
-    ldi temp, 0b00001111
+    ldi temp, 0x0f
     out PORTC, temp
 
-    ldi temp, 0b00000000
+    ldi temp, 0x00
     out DDRD, temp
 
-    ldi temp, 0b11111100
+    ldi temp, 0xfc
     out PORTD, temp
 
-    ldi temp, 0b00111110
+    ldi temp, 0x3e
     out DDRB, temp
 
-    ldi temp, 0b00000001
+    ldi temp, 0x01
     out PORTB, temp
 
+	; pongo a "0" todos los registros
     clr A
     clr B
     clr S
@@ -60,7 +62,6 @@ MAIN_LOOP:
     rcall CALCULAR_ALU
     rcall MOSTRAR_SALIDA
     rjmp MAIN_LOOP
-
 
 LEER_ENTRADAS:
     in temp, PINC
@@ -136,5 +137,27 @@ SUB_NO_CARRY:
     clr C_flag
 
 SUB_FIN:
+    andi F, 0x0F
+    ret
+
+DO_ADD:
+    mov F, A
+    add F, B
+	sbrc F, 4
+    rjmp ADD_CARRY
+	clr C_flag
+    rjmp ADD_FIN
+
+ADD_CARRY:
+    ldi C_flag, 1
+
+ADD_FIN:
+    andi F, 0x0F
+    ret
+
+DO_XOR:
+    mov F, A
+    eor F, B
+    clr C_flag
     andi F, 0x0F
     ret
