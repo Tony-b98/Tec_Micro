@@ -7,6 +7,9 @@
 # Archivos ASM
 !*.asm
 
+# Archivos HEX para programar el microcontrolador
+!*.hex
+
 # Documentos PDF
 !*.pdf
 
