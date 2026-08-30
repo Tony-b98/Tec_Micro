@@ -41,3 +41,4 @@
 
 # El propio gitignore
 !.gitignore*.atsln
+*.atsln
