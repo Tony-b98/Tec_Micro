@@ -74,4 +74,53 @@ MAIN_LOOP:
 
     rjmp MAIN_LOOP
 
+; Incremento de contador
+MANEJAR_INC:
+    rcall DELAY_DEBOUNCE    ; Antirrebote inicial
 
+    ; Confirma que el pulsador continúa presionado
+    sbis PIND, BTN_INC
+    rjmp INC_CONFIRMADO
+    ret
+
+INC_CONFIRMADO:
+    ; Compara con el valor maximo para que no se supere.
+    cpi contador, 9
+    breq INC_ESPERA_SUELTA
+
+    inc contador
+    rcall ACTUALIZAR_DISPLAY
+
+INC_ESPERA_SUELTA:
+    ; Espera hasta que el usuario libere el pulsador
+    sbis PIND, BTN_INC
+    rjmp INC_ESPERA_SUELTA
+	rcall DELAY_DEBOUNCE
+    ret
+
+; Decremento del contador
+MANEJAR_DEC:
+    rcall DELAY_DEBOUNCE    ; Antirrebote inicial
+
+    ; Confirma que el pulsador continúa presionado
+    sbis PIND, BTN_DEC
+    rjmp DEC_CONFIRMADO
+    ret
+
+DEC_CONFIRMADO:
+    ; Evita disminuir por debajo de cero
+    cpi contador, 0
+    breq DEC_ESPERA_SUELTA
+	dec contador
+    rcall ACTUALIZAR_DISPLAY
+
+DEC_ESPERA_SUELTA:
+    ; Espera hasta que el usuario libere el pulsador
+    sbis PIND, BTN_DEC
+    rjmp DEC_ESPERA_SUELTA
+	rcall DELAY_DEBOUNCE
+    ret
+
+
+
+;definir etiqueta DELAY_DEBOUNCE,MANEJAR_RST Y ACTUALIZAR_DISPLAY
