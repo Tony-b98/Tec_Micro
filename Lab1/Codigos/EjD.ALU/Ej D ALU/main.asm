@@ -91,3 +91,50 @@ LEER_ENTRADAS:
     ori S, 0b00000100
 
     ret
+
+CALCULAR_ALU:
+    cpi S, S_CLEAR
+    breq DO_CLEAR
+
+    cpi S, S_SUB
+    breq DO_SUB
+
+    cpi S, S_ADD
+    breq DO_ADD
+
+    cpi S, S_XOR
+    breq DO_XOR
+
+    cpi S, S_AND
+    breq DO_AND
+
+    cpi S, S_OR
+    breq DO_OR
+
+    cpi S, S_SHL
+    breq DO_SHL
+
+    rjmp DO_INC
+
+
+DO_CLEAR:
+    clr F
+    clr C_flag
+    ret
+
+
+DO_SUB:
+    mov F, A
+    sub F, B
+
+    brcc SUB_NO_CARRY
+
+    ldi C_flag, 1
+    rjmp SUB_FIN
+
+SUB_NO_CARRY:
+    clr C_flag
+
+SUB_FIN:
+    andi F, 0x0F
+    ret
