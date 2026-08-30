@@ -4,13 +4,27 @@
 # Permitir carpetas
 !*/
 
-# Archivos ASM
+# Código fuente
 !*.asm
+!*.c
+!*.h
 
-# Archivos HEX para programar el microcontrolador
+# Proyectos Microchip Studio
+!*.cproj
+!*.atsln
+
+# Archivos HEX para programar el micro
 !*.hex
 
-# Documentos PDF
+# Proteus
+!*.pdsprj
+!*.dsn
+!*.sch
+!*.bin
+!*.ly
+!*.lb
+
+# Documentación
 !*.pdf
 
 # Imágenes
@@ -22,18 +36,8 @@
 !*.svg
 !*.webp
 
-#Draw io
+# Draw.io
 !*.drawio
 
-# Archivos de Proteus
-!*.pdsprj
-!*.dsn
-!*.sch
-!*.bin
-!*.pdsprj
-!*.dsn
-!*.ly
-!*.lb
-
-# También mostrar el .gitignore
+# El propio gitignore
 !.gitignore
