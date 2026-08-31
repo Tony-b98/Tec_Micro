@@ -1,5 +1,8 @@
 .include "m328Pdef.inc"
-; Definicion de registros
+
+.cseg
+
+; DEFINICION DE REGISTROS
 .def temp    = r16
 .def A       = r17
 .def B       = r18
@@ -8,6 +11,7 @@
 .def C_flag  = r21
 .def aux     = r22
 
+;CÓDIGOS DE SELECCIÓN DE LA ALU
 .equ S_CLEAR = 0
 .equ S_SUB   = 1
 .equ S_ADD   = 2
@@ -17,13 +21,14 @@
 .equ S_SHL   = 6
 .equ S_INC   = 7
 
-; Vector de reset
+; VECTOR DE RESET
 .org 0x0000
     rjmp RESET_ALU
 
 
+;CONFIGURACIÓN INICIAL
 RESET_ALU:
-	;Inicialización de SP
+
     ldi temp, low(RAMEND)
     out SPL, temp
 	ldi temp, high(RAMEND)
@@ -47,7 +52,7 @@ RESET_ALU:
     ldi temp, 0x01
     out PORTB, temp
 
-	; pongo a "0" todos los registros
+; Inicialización de los registros en cero	
     clr A
     clr B
     clr S
@@ -56,19 +61,23 @@ RESET_ALU:
 
     rcall MOSTRAR_SALIDA
 
-
+; BUCLE PRINCIPAL
 MAIN_LOOP:
     rcall LEER_ENTRADAS
     rcall CALCULAR_ALU
     rcall MOSTRAR_SALIDA
     rjmp MAIN_LOOP
 
+; LECTURA DE ENTRADAS
 LEER_ENTRADAS:
+
+ ; Lectura del operando A desde PC0-PC3
     in temp, PINC
     com temp
     andi temp, 0x0F
     mov A, temp
 
+; Lectura del operando B desde PD2-PD5
     in temp, PIND
     com temp
 
@@ -77,6 +86,7 @@ LEER_ENTRADAS:
     lsr B
     andi B, 0x0F
 
+; Formación del selector S = S2 S1 S0
     clr S
 
     sbrc temp, 6
@@ -93,6 +103,7 @@ LEER_ENTRADAS:
 
     ret
 
+; SELECCIÓN DE LA OPERACIÓN
 CALCULAR_ALU:
     cpi S, S_CLEAR
     breq DO_CLEAR
@@ -118,12 +129,15 @@ CALCULAR_ALU:
     rjmp DO_INC
 
 
+; CLEAR
+; F = 0000
 DO_CLEAR:
     clr F
     clr C_flag
     ret
 
-
+; OPERACIÓN SUB
+; F = A - B
 DO_SUB:
     mov F, A
     sub F, B
@@ -140,6 +154,8 @@ SUB_FIN:
     andi F, 0x0F
     ret
 
+; SUMA
+; F = A + B
 DO_ADD:
     mov F, A
     add F, B
@@ -155,9 +171,70 @@ ADD_FIN:
     andi F, 0x0F
     ret
 
+; XOR
+; F = A XOR B
 DO_XOR:
     mov F, A
     eor F, B
     clr C_flag
+    andi F, 0x0F
+    ret
+
+; OPERACIÓN AND
+; F = A AND B
+DO_AND:
+    mov F, A
+    and F, B
+	; Las operaciones lógicas no generan Carry
+    clr C_flag
+	; Limitar resultado a 4 bits
+    andi F, 0x0F
+    ret
+
+; OPERACIÓN OR
+;F= A OR B
+DO_OR:
+    mov F, A
+    or F, B
+    clr C_flag
+    andi F, 0x0F
+    ret
+
+; OPERACIÓN SHL
+; F = A << 1
+DO_SHL:
+    clr C_flag
+; El bit A3 que sale del rango se guarda en Carry
+    sbrc A, 3
+    ldi C_flag, 1
+
+    mov F, A
+    lsl F
+ ; Mantener solo los 4 bits del resultado
+    andi F, 0x0F
+
+    ret
+
+; OPERACIÓN INC
+; F = A + 1
+DO_INC:
+; Incrementar A en una unidad
+    mov F, A
+
+    ldi temp, 1
+    add F, temp
+; Verificar si hubo acarreo fuera de los 4 bits
+    sbrc F, 4
+    rjmp INC_CARRY
+
+    clr C_flag
+    rjmp INC_FIN
+
+INC_CARRY:
+  ; Activar bandera Carry
+    ldi C_flag, 1
+
+INC_FIN:
+ ; Limitar resultado a 4 bits
     andi F, 0x0F
     ret
