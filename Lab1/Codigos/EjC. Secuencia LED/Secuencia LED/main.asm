@@ -1,17 +1,17 @@
 .include "m328Pdef.inc"
 
 ; Definición de sinonimos para registros de trabajo
-.def temp      = r16
-.def secuencia = r17
-.def patron    = r18
-.def aux       = r21
+.def temp      = r16 
+.def secuencia = r17 ;Número de secuencia actual
+.def patron    = r18 ;Patron de 8 bits mostrado en los LEDs
+.def aux       = r21 ;Registros auxiliares para retardos
 .def aux2      = r22
 .def aux3      = r23
 
 ;Asignación de pines
-.equ BTN_SIG    = 2
-.equ BTN_ANT    = 3
-.equ BTN_INICIO = 4
+.equ BTN_SIG    = 2 ;Secuencia siguiente
+.equ BTN_ANT    = 3 ;Secuencia anterior
+.equ BTN_INICIO = 4 ;Volver a la secuencia inicial
 
 ; Segmento de memoria de programa
 .cseg
@@ -21,7 +21,7 @@
     rjmp RESET
 
 RESET:
-	;Inicio de SP en el último lugar de la RAM
+	;Inicialización del stack pointer
     ldi temp, low(RAMEND)
     out SPL, temp
 	ldi temp, high(RAMEND)
@@ -41,6 +41,9 @@ RESET:
 	clr secuencia
     rcall REINICIAR_SECUENCIA
 
+;BUCLE PRINCIPAL
+;Comprueba los pulsadores, muestra el patron y ejecuta
+;El siguiente paso de la secuencia seleccionada
 MAIN_LOOP:
     rcall CHECK_BOTONES
     rcall MOSTRAR_PATRON
@@ -210,7 +213,7 @@ EJECUTAR_PASO:
 
 
 ; SECUENCIA 0
-; Un led dezplazándse en un sentido
+; Un led desplazándse en un sentido
 PASO_SEQ0:
     lsl patron
     brne PS0_OUT
@@ -221,7 +224,7 @@ PS0_OUT:
     ret
 
 ; SECUENCIA 1
-; Un led dezlasándose en sentido contrario
+; Un led deslasándose en sentido contrario
 PASO_SEQ1:
     lsr patron
     brne PS1_OUT
@@ -296,7 +299,7 @@ PASO_SEQ6:
 PASO_SEQ7:
     com patron
     ret
-
+;MOSTRAR PATRON EN LOS 8 LEDs
 MOSTRAR_PATRON:
 
 ;Bits 0 a 5 puertos 2 a 7
@@ -325,7 +328,7 @@ MOSTRAR_PATRON:
 
     out PORTB, aux
 	ret
-; Delay de paso, usando los registro aux.
+;RETARDO ENTRE PASOS DE LA SECUENCIA
 DELAY_PASO:
 
     push aux
@@ -354,8 +357,7 @@ DP_INNER:
     pop aux
 	ret
 
-; Delay antirebote
-
+;RETARDO PARA ANTIRREBOTE DE LOS PULSADORES
 DELAY_DEBOUNCE:
 
     push aux
