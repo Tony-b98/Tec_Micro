@@ -324,5 +324,63 @@ MOSTRAR_PATRON:
     ori aux, 0b00011100
 
     out PORTB, aux
+	ret
+; Delay de paso, usando los registro aux.
+DELAY_PASO:
 
-    ret
+    push aux
+    push aux2
+    push aux3
+
+    ldi aux, 50
+
+
+DP_OUTER:
+    ldi aux2, 200
+
+DP_MID:
+    ldi aux3, 100
+
+DP_INNER:
+    dec aux3
+    brne DP_INNER
+	dec aux2
+    brne DP_MID
+	dec aux
+    brne DP_OUTER
+
+	pop aux3
+    pop aux2
+    pop aux
+	ret
+
+; Delay antirebote
+
+DELAY_DEBOUNCE:
+
+    push aux
+    push aux2
+    push aux3
+
+    ldi aux, 20
+
+
+DD_OUTER:
+    ldi aux2, 200
+
+DD_MID:
+    ldi aux3, 25
+
+DD_INNER:
+    dec aux3
+    brne DD_INNER
+	dec aux2
+    brne DD_MID
+
+    dec aux
+    brne DD_OUTER
+
+	pop aux3
+    pop aux2
+    pop aux
+	ret
