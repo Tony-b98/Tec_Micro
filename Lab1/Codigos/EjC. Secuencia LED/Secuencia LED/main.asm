@@ -296,3 +296,33 @@ PASO_SEQ6:
 PASO_SEQ7:
     com patron
     ret
+
+MOSTRAR_PATRON:
+
+;Bits 0 a 5 puertos 2 a 7
+    mov temp, patron
+
+    lsl temp
+    lsl temp
+
+    out PORTD, temp
+
+
+;Bits 6 y 7 puertos 0 y 1
+    mov aux, patron
+
+    lsr aux
+    lsr aux
+    lsr aux
+    lsr aux
+    lsr aux
+    lsr aux
+
+    andi aux, 0x03
+
+    ; Mantener pull-ups de botones
+    ori aux, 0b00011100
+
+    out PORTB, aux
+
+    ret

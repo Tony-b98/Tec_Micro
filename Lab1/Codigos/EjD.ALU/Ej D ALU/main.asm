@@ -238,3 +238,50 @@ INC_FIN:
  ; Limitar resultado a 4 bits
     andi F, 0x0F
     ret
+
+	
+MOSTRAR_SALIDA:
+; Bit0 en 1 para mantener PB0 como entrada con pull-up (S2)
+    ldi temp, 0b00000001
+
+; F0 -> PB1
+    sbrc F, 0
+    ori temp, 0b00000010
+
+; F1 -> PB2
+    sbrc F, 1
+    ori temp, 0b00000100
+
+; F2 -> PB3
+    sbrc F, 2
+    ori temp, 0b00001000
+
+; F3 -> PB4
+    sbrc F, 3
+    ori temp, 0b00010000
+
+; Carry -> PB5
+    tst C_flag
+    breq MS_SIN_C
+
+    ori temp, 0b00100000
+
+MS_SIN_C:
+    out PORTB, temp
+
+    ldi temp, 0b00001111
+
+; Negativo (bit3 de F) -> PC4
+    sbrc F, 3
+    ori temp, 0b00010000
+
+; Zero (F = 0000) -> PC5
+    tst F
+    brne MS_NO_ZERO
+
+    ori temp, 0b00100000
+
+MS_NO_ZERO:
+    out PORTC, temp
+
+    ret
