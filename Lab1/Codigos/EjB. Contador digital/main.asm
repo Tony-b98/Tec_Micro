@@ -4,9 +4,9 @@
 
 ; DEFINICIÓN DE REGISTROS
 
-.def temp     = r16 ; Tomo registro 16 para almacenar variables
-.def contador = r18 ;r18 como contador
-.def aux      = r21 ;registros para generar retardos
+.def temp     = r16 ;Registro temporal de trabajo
+.def contador = r18 ;Almacena el valor actual del contador
+.def aux      = r21 ;Registros auxiliares utilizados en retardos
 .def aux2     = r22
 .def aux3     = r23
 
@@ -121,12 +121,7 @@ DEC_ESPERA_SUELTA:
 	rcall DELAY_DEBOUNCE
     ret
 
-
-
-;definir etiqueta DELAY_DEBOUNCE,MANEJAR_RST Y ACTUALIZAR_DISPLAY
-
-
-
+;REINICIO DEL CONTADOR
 MANEJAR_RST:
     rcall DELAY_DEBOUNCE    
 
@@ -148,7 +143,7 @@ RST_ESPERA_SUELTA:
     rcall DELAY_DEBOUNCE
     ret
 
-
+;ACTUALIZACIÓN DEL DISPLAY DE 7 SEG.
 ACTUALIZAR_DISPLAY:
     ; Guarda los registros utilizados por la rutina
     push temp
@@ -185,6 +180,8 @@ ACTUALIZAR_DISPLAY:
     pop aux
     pop temp
     ret
+
+;SUBRUTINA DE RETARDO PARA ANTIRREBOTE
 DELAY_DEBOUNCE:
     push aux
     push aux2
@@ -220,6 +217,6 @@ DD_INNER:
     pop aux
     ret
 
-	TABLA_7SEG:
-; Patrones correspondientes a los números 0 a 9
-    .db 0x3F, 0x06, 0x5B, 0x4F, 0x66, 0x6D, 0x7D, 0x07, 0x7F, 0x6F
+;TABLA DE PATRONES DEL DISPLAY PARA LOS NÚMEROS DEL 0 AL 9
+TABLA_7SEG:
+   .db 0x3F, 0x06, 0x5B, 0x4F, 0x66, 0x6D, 0x7D, 0x07, 0x7F, 0x6F
