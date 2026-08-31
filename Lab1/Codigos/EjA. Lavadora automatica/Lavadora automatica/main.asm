@@ -1,8 +1,15 @@
+; LAVADORA AUTOMÁTICA
+; Control mediante máquina de estados
+; Entradas activas en bajo utilizando resistencias pull-up
+
+
 .include "m328Pdef.inc"
+
+.cseg ; Indica el inicio del segmento de código en memoria Flash
 
 ; Defino sinonimos para los registros a utilizar
 
-.def temp        = r16   ; registro para guardar 
+.def temp        = r16   ; registro temporal de trabajo
 .def carga       = r17   ; Almacena la variable de tipo de carga, (0=ligera, 1=media, 2=pesada)
 .def ciclo_lav   = r18   ; contador ciclos de lavado (5 -> 0)
 .def segundos    = r19   ; parámetro para delay_seg
@@ -61,7 +68,10 @@ RESET:
     out   PORTB, data_portB
     clr   carga
 	
-	;Comienzo de estados
+;COMIENZO DE ESTADOS
+
+;STAND BY: Permite seleccionar la carga y comenzar el proceso
+; únicamente si la puerta se encuentra cerrada
 STAND_BY:
     clr   carga
     ldi   data_portD, (1<<LED_LISTO)
@@ -73,10 +83,12 @@ SB_ESPERA_SELECCION:
     sbic  PINC, PIN_SELECCION      ; si el pulsador de selección NO está presionado, salta
     rjmp  SB_CHEQUEA_INICIO
 
-    rcall debounce_20ms
+    rcall debounce
     sbic  PINC, PIN_SELECCION      ; confirma que sigue presionado (evita rebote)
     rjmp  SB_CHEQUEA_INICIO
 
+; Cada pulsación cambia el tipo de carga:
+; 0 = ligera, 1 = media, 2 = pesada
     inc   carga
     cpi   carga, 3
     brne  SB_ACTUALIZA_LED
@@ -96,9 +108,10 @@ SB_CHEQUEA_INICIO:
     sbic  PINC, PIN_PUERTA         ; exige puerta cerrada (Sensor puerta = 0 -> cerrada, activo bajo)
     rjmp  SB_ESPERA_SELECCION
 
-    rcall debounce_20ms
+    rcall debounce
     rjmp  LLENADO
- 
+
+; ESTADO LLENADO
 LLENADO:
     sbr   data_portB, (1<<VALVULA)
     out   PORTB, data_portB
@@ -111,6 +124,9 @@ LL_ESPERA_SENSOR:
     out   PORTB, data_portB
     rjmp  LAVADO
 
+; ESTADO LAVADO
+; Ejecuta 5 ciclos de lavado.
+; Los tiempos dependen del tipo de carga seleccionado
 LAVADO:
     ldi   temp, (1<<LED_LAVADO)
     rcall fija_led_fase             ; prende LED de fase (Lavado) + LED de carga
@@ -136,7 +152,7 @@ LAV_CICLO:
 
 	rjmp CENTRIFUGADO
 
-; Ciclo de centrifugado
+;ESTADO CENTRIFUGADO
 CENTRIFUGADO:
 	ldi temp, (1<<LED_CENTRIF)
 	rcall fija_led_fase
@@ -154,6 +170,9 @@ CENTRIFUGADO:
 	out PORTB, data_portB
 	rjmp SECADO_DERECHA
 
+; ESTADO SECADO
+; Giro a derecha, pausa y giro a izquierda.
+; Los tiempos aumentan según la carga seleccionada
 SECADO_DERECHA:
 	ldi temp, (1<<LED_SECADO)
 	rcall fija_led_fase
@@ -184,6 +203,9 @@ SECADO_IZQUIERDA:
     out   PORTB, data_portB
     rjmp  FIN_PROCESO
 
+; FIN DEL PROCESO
+; Apaga actuadores, enciende LED de fin y luego
+; retorna automáticamente al estado STAND BY
 FIN_PROCESO:
     ldi   data_portD, (1<<LED_FIN)     ; el resto de LEDs de PORTD en 0
     out   PORTD, data_portD
@@ -244,9 +266,9 @@ ALF_SALIDA:
     out   PORTB, data_portB
     ret
 
-; SUBRUTINA: debounce_20ms  (retardo corto anti-rebote)
-debounce_20ms: 
-   push  r22
+;Subrutina de retardo para antirrebote de pulsadores
+ debounce: 
+    push  r22
     push  r23
     ldi   r22, 40
 DB1:
