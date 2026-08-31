@@ -1,3 +1,8 @@
+; ALU DE 4 BITS
+; Realiza 8 operaciones seleccionadas mediante S2-S0
+; Entradas configuradas con resistencias pull-up internas
+
+
 .include "m328Pdef.inc"
 
 .cseg
@@ -28,27 +33,36 @@
 
 ;CONFIGURACIÓN INICIAL
 RESET_ALU:
-
+    ;Inicialización del stack pointer
     ldi temp, low(RAMEND)
     out SPL, temp
 	ldi temp, high(RAMEND)
     out SPH, temp
 
+	;Entradas para A
+	;Salida para las banderas Z y N
     ldi temp, 0x30
     out DDRC, temp
 
+	;Activación de pull-up
     ldi temp, 0x0f
     out PORTC, temp
 
+	;Entradas para B
+	;Entradas para S0 y S1
     ldi temp, 0x00
     out DDRD, temp
 
+	;Activación de pull-up
     ldi temp, 0xfc
     out PORTD, temp
 
+	;Entrada para S2
+	;Salidas F0-F3 y salida carry
     ldi temp, 0x3e
     out DDRB, temp
 
+	;Activación de pull-up
     ldi temp, 0x01
     out PORTB, temp
 
@@ -69,6 +83,8 @@ MAIN_LOOP:
     rjmp MAIN_LOOP
 
 ; LECTURA DE ENTRADAS
+;Lee las entradas, realiza la operacion seleccionada
+;y actualiza el resultado y las banderas
 LEER_ENTRADAS:
 
  ; Lectura del operando A desde PC0-PC3
@@ -239,7 +255,7 @@ INC_FIN:
     andi F, 0x0F
     ret
 
-	
+;MOSTRAR RESULTADO Y BANDERAS DE LA ALU	
 MOSTRAR_SALIDA:
 ; Bit0 en 1 para mantener PB0 como entrada con pull-up (S2)
     ldi temp, 0b00000001
