@@ -119,72 +119,73 @@ CARGAR_ASTERISCO:
     ldi ZL, low(ASTERISCO*2)
     ldi ZH, high(ASTERISCO*2)
 
-; BARRIDO DE LA MATRIZ
+; INICIAR MATRIZ
 
 INICIAR_MATRIZ:
 
-    ldi fila, 0b00000001
+    ; fila = número de fila, 0 a 7
+    clr fila
+
+    ; 8 filas
     ldi temp2, 8
 
+; BARRIDO
 
 BARRIDO:
+    ; Apagar todas las filas
+    rcall APAGAR_FILAS
 
-    ; Apagar filas mientras cambiamos las columnas
-    clr temp
-    out PORTD, temp
-
-
-    ; Leer una fila del dibujo
+    ; Leer fila de dibujo
     lpm patron, Z+
 
-
-    ; Los LED se encienden con columna en 0
+   ; Los LEDs se encienden con columna en 0
     com patron
 
     ; COLUMNAS 1-6 -> PORTB
-    
     mov temp, patron
     andi temp, 0b00111111
     out PORTB, temp
 
-    ; COLUMNAS 7-8 -> PC0 y PC1
-    
+    ; COLUMNAS 7-8 -> PC0-PC1
     mov temp, patron
+    lsr temp
+    lsr temp
+    lsr temp
+    lsr temp
+    lsr temp
+    lsr temp
+	andi temp, 0b00000011
 
-    lsr temp
-    lsr temp
-    lsr temp
-    lsr temp
-    lsr temp
-    lsr temp
+    ; Mantener pull-up de PC2 y PC3
 
-    andi temp, 0b00000011
-
-    ; Mantener pull-up de los botones
     ori temp, 0b00001100
 
+    ; Las filas PC4-PC5 todavía están apagadas
+
     out PORTC, temp
-
-    ; Activar fila
-    
-    out PORTD, fila
-
-
+		
+    ; Activar fila correspondiente
+    rcall ACTIVAR_FILA
+	
+    ; Tiempo de encendido
     rcall DELAY_FILA
 
-
-    ; Pasar a siguiente fila
-    lsl fila
-
-    dec temp2
+	; Siguiente fila
+    
+	inc fila
+	dec temp2
     brne BARRIDO
 
+	; Apagar matriz
+    rcall APAGAR_FILAS
+	ret
 
-    ; Apagar matriz al terminar
-    clr temp
-    out PORTD, temp
 
-    ret
+;
+;	FALTA TERMINAR: APAGAR FILAS Y ACTIVAR FILAS 
+;
+
+
 
 ; LEER BOTONES
 
