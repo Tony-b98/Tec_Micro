@@ -42,7 +42,7 @@ inicio:
 	;Apagar filas PD2-PD7
 	in temp, PORTD
 	andi temp, 0b0000_0011
-	out POTD, temp
+	out PORTD, temp
 
     ; PORTB -> PB0 a PB5
     
@@ -110,9 +110,7 @@ CARGAR_CORAZON:
 
     ldi ZL, low(CORAZON*2)
     ldi ZH, high(CORAZON*2)
-
     rjmp INICIAR_MATRIZ
-
 
 ; ASTERISCO
 
