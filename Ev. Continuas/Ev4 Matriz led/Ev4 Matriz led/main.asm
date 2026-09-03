@@ -1,8 +1,6 @@
 .include "m328Pdef.inc"
 
-
-; REGISTROS....
-
+; REGISTROS
 
 .def temp        = r16
 .def temp2       = r17
@@ -23,49 +21,51 @@
 ; VECTOR RESET
 
 .org 0x0000
-    rjmp RESET
+    rjmp inicio
 
 ; CONFIGURACION
 
-RESET:
+inicio:
 
     ; Configurar Stack Pointer
-    ldi temp, low(RAMEND)
+   
+	ldi temp, low(RAMEND)
     out SPL, temp
-
-    ldi temp, high(RAMEND)
+	ldi temp, high(RAMEND)
     out SPH, temp
 
-    ; PORTD -> 8 FILAS DE LA MATRIZ
+    ; PORTD -> 6 FILAS DE LA MATRIZ
    
-    ldi temp, 0xFF
+    ldi temp, 0b1111_1100
     out DDRD, temp
+	
+	;Apagar filas PD2-PD7
+	in temp, PORTD
+	andi temp, 0b0000_0011
+	out POTD, temp
 
-    clr temp
-    out PORTD, temp
-
-    ; PORTB -> COLUMNAS 1 A 6
+    ; PORTB -> PB0 a PB5
     
-    ldi temp, 0b00111111
+    ldi temp, 0b0011_1111
     out DDRB, temp
 
-    ldi temp, 0b00111111
+    ldi temp, 0b0011_1111
     out PORTB, temp
 
     ; PORTC
-    ;
-    ; PC0-PC1 = columnas
+    ; PC0-PC1 = columnas 7 y 8
     ; PC2-PC3 = botones
+	;PC4 -PC5= filas 7 y 8
  
-    ldi temp, 0b00000011
+    ldi temp, 0b0011_0011
     out DDRC, temp
 
     ; Pull-up PC2 y PC3
+	; Columas y filas apagadas
     ldi temp, 0b00001100
     out PORTC, temp
 
-
-    ; Primera imagen = sonrisa
+	; Primera imagen = sonrisa
     clr imagen
 
     ; Estado inicial de botones
@@ -77,15 +77,12 @@ MAIN:
 
     rcall MOSTRAR_IMAGEN
     rcall LEER_BOTONES
-
     rjmp MAIN
 
 ; MOSTRAR IMAGEN
 
 MOSTRAR_IMAGEN:
-
     ; Elegir dibujo
-
     cpi imagen, 0
     breq CARGAR_SONRISA
 
@@ -102,6 +99,10 @@ CARGAR_SONRISA:
     ldi ZH, high(SONRISA*2)
 
     rjmp INICIAR_MATRIZ
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;,;
+;;;;;;;;;;;MODIFICACIONES CON NUEVA ASIGNACION DE PINES;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ; CORAZON
 
