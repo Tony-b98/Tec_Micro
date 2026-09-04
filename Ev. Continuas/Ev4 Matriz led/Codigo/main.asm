@@ -97,15 +97,9 @@ CARGAR_SONRISA:
 
     ldi ZL, low(SONRISA*2)
     ldi ZH, high(SONRISA*2)
-
     rjmp INICIAR_MATRIZ
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;,;
-;;;;;;;;;;;MODIFICACIONES CON NUEVA ASIGNACION DE PINES;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ; CORAZON
-
 CARGAR_CORAZON:
 
     ldi ZL, low(CORAZON*2)
@@ -113,7 +107,6 @@ CARGAR_CORAZON:
     rjmp INICIAR_MATRIZ
 
 ; ASTERISCO
-
 CARGAR_ASTERISCO:
 
     ldi ZL, low(ASTERISCO*2)
@@ -123,7 +116,7 @@ CARGAR_ASTERISCO:
 
 INICIAR_MATRIZ:
 
-    ; fila = número de fila, 0 a 7
+    ; fila = nÃºmero de fila, 0 a 7
     clr fila
 
     ; 8 filas
@@ -160,7 +153,7 @@ BARRIDO:
 
     ori temp, 0b00001100
 
-    ; Las filas PC4-PC5 todavía están apagadas
+    ; Las filas PC4-PC5 todavÃ­a estÃ¡n apagadas
 
     out PORTC, temp
 		
@@ -180,15 +173,6 @@ BARRIDO:
     rcall APAGAR_FILAS
 	ret
 
-
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;,;
-;SE AGREGAN RUTINAS DE APAGAR Y ACTIVAR FILAS
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;,;
-
-
 ;RUTINA APAGAR FILAS
 ; Desactiva todas las filas de la matriz antes
 ; de encender la siguiente durante el multiplexado.
@@ -204,12 +188,12 @@ APAGAR_FILAS:
     ; Apagar PC4-PC5
     ; Mantener PC0-PC3
     in temp, PORTC
-    andi temp, 0b00001111
+    andi temp, 0b0000_1111
     out PORTC, temp
     ret
 
 ;RUTINA ACTIVAR FILA
-; Activa una única fila de la matriz según
+; Activa una Ãºnica fila de la matriz segÃºn
 ; el valor almacenado en el registro "fila".
 ACTIVAR_FILA:
  ; fila = 0 -> Fila 1 -> PD2
@@ -276,21 +260,15 @@ FILA_7:
     sbi PORTC, 4
     ret
 
-
-
 ; LEER BOTONES
 
 LEER_BOTONES:
 
     in botones, PINC
-
-
     ; Detectar flanco 1 -> 0
     mov cambios, botones_ant
-
     mov temp, botones
     com temp
-
     and cambios, temp
 
     ; BOTON SIGUIENTE
@@ -302,109 +280,57 @@ LEER_BOTONES:
  
     sbrc cambios, BTN_ANT
     rcall ANTERIOR
-
-
-    ; Guardar estado actual
+	
+	; Guardar estado actual
     mov botones_ant, botones
-
-    ret
-
-
+	ret
 
 ; SIGUIENTE IMAGEN
 
 SIGUIENTE:
 
     inc imagen
-
-    cpi imagen, 3
+	cpi imagen, 3
     brlo FIN_SIG
-
-    clr imagen
+	clr imagen
 
 FIN_SIG:
-
-    ret
-
-
+	ret
 
 ; IMAGEN ANTERIOR
-
 ANTERIOR:
 
     tst imagen
     brne RESTAR_IMAGEN
-
     ldi imagen, 2
     ret
 
-
 RESTAR_IMAGEN:
-
     dec imagen
     ret
 
-
-
-; DELAY PARA MULTIPLEXADO
-
-
+; DELAY
 DELAY_FILA:
-
     ldi delay1, 20
-
 DELAY_EXT:
-
     ldi delay2, 200
 
 DELAY_INT:
-
     dec delay2
     brne DELAY_INT
-
     dec delay1
     brne DELAY_EXT
-
     ret
 
 ; DIBUJOS 8x8
-
-; MATRIZ CARITA SONRIENDO
-
-
 SONRISA:
-
-.db 0b00111100
-.db 0b01000010
-.db 0b10100101
-.db 0b10000001
-.db 0b10100101
-.db 0b10011001
-.db 0b01000010
-.db 0b00111100
-
-;MATRIZ CORAZON
+.db 0b0011_1100, 0b0100_0010, 0b1010_0101, 0b1000_0001
+.db 0b1010_0101, 0b1001_1001, 0b0100_0010, 0b0011_1100
 
 CORAZON:
-
-.db 0b00000000
-.db 0b01100110
-.db 0b11111111
-.db 0b11111111
-.db 0b01111110
-.db 0b00111100
-.db 0b00011000
-.db 0b00000000
-
-;MATRIZ ASTERISCO
+.db 0b0000_0000, 0b0110_0110, 0b1111_1111, 0b1111_1111
+.db 0b0111_1110, 0b0011_1100, 0b0001_1000, 0b0000_0000
 
 ASTERISCO:
-
-.db 0b00011000
-.db 0b01011010
-.db 0b00111100
-.db 0b11111111
-.db 0b00111100
-.db 0b01011010
-.db 0b00011000
-.db 0b00000000
+.db 0b0001_1000, 0b0101_1010, 0b0011_1100, 0b1111_1111
+.db 0b0011_1100, 0b0101_1010, 0b0001_1000, 0b0000_0000
