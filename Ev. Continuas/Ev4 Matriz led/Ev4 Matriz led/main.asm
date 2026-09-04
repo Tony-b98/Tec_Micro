@@ -181,9 +181,100 @@ BARRIDO:
 	ret
 
 
-;
-;	FALTA TERMINAR: APAGAR FILAS Y ACTIVAR FILAS 
-;
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;,;
+;SE AGREGAN RUTINAS DE APAGAR Y ACTIVAR FILAS
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;,;
+
+
+;RUTINA APAGAR FILAS
+; Desactiva todas las filas de la matriz antes
+; de encender la siguiente durante el multiplexado.
+APAGAR_FILAS:
+    ; PORTD
+    ; Apagar PD2-PD7
+    ; Mantener PD0-PD1 intactos
+    in temp, PORTD
+    andi temp, 0b00000011
+    out PORTD, temp
+
+    ; PORTC
+    ; Apagar PC4-PC5
+    ; Mantener PC0-PC3
+    in temp, PORTC
+    andi temp, 0b00001111
+    out PORTC, temp
+    ret
+
+;RUTINA ACTIVAR FILA
+; Activa una única fila de la matriz según
+; el valor almacenado en el registro "fila".
+ACTIVAR_FILA:
+ ; fila = 0 -> Fila 1 -> PD2
+    cpi fila, 0
+    breq FILA_1
+; fila = 1 -> Fila 2 -> PD3
+    cpi fila, 1
+    breq FILA_2
+; fila = 2 -> Fila 3 -> PD4
+    cpi fila, 2
+    breq FILA_3
+; fila = 3 -> Fila 4 -> PD5
+    cpi fila, 3
+    breq FILA_4
+ ; fila = 4 -> Fila 5 -> PD6
+    cpi fila, 4
+    breq FILA_5
+ ; fila = 5 -> Fila 6 -> PD7
+    cpi fila, 5
+    breq FILA_6
+; fila = 6 -> Fila 7 -> PC4
+    cpi fila, 6
+    breq FILA_7
+
+; fila = 7 -> Fila 8 -> PC5    
+	sbi PORTC, 5
+    ret
+
+; ACTIVACION INDIVIDUAL DE FILAS
+; Cada rutina pone en nivel alto el pin
+; correspondiente a una fila de la matriz.
+FILA_1:
+;Activar fila 1 
+    sbi PORTD, 2
+    ret
+
+FILA_2:
+;Activar fila 2 
+    sbi PORTD, 3
+    ret
+ 
+FILA_3:
+;Activar fila 3
+    sbi PORTD, 4
+    ret
+
+FILA_4:
+;Activar fila 4 
+    sbi PORTD, 5
+    ret
+
+FILA_5:
+;Activar fila 5
+    sbi PORTD, 6
+    ret
+
+FILA_6:
+;Activar fila 6 
+    sbi PORTD, 7
+    ret
+
+FILA_7:
+;Activar fila 7 
+    sbi PORTC, 4
+    ret
 
 
 
