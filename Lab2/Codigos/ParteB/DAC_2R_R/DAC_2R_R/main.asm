@@ -45,4 +45,63 @@
 
 .org 0x0034
 
-; Inicialización de SP
+; PROGRAMA PRINCIPAL
+RESET:
+        ; Inicializar Stack Pointer
+        ldi     temp, LOW(RAMEND)
+        out     SPL, temp
+
+        ldi     temp, HIGH(RAMEND)
+        out     SPH, temp
+
+        clr     cero
+        clr     r_idx
+
+        rcall   PORTS_INIT
+        rcall   UART_INIT
+        rcall   TIMER1_INIT
+
+        ; Arranque por defecto con Señal 13
+        rcall   SELECCIONAR_SIG13
+
+        sei
+
+        ; Mostrar menu
+        ldi     ZL, LOW(MSG_MENU*2)
+        ldi     ZH, HIGH(MSG_MENU*2)
+        rcall   PRINT_STRING
+
+		; BUCLE PRINCIPAL
+MAIN_LOOP:
+
+        ; Consultar si llego un byte por UART
+        lds     temp, UCSR0A
+
+        sbrs    temp, RXC0
+        rjmp    MAIN_LOOP
+
+        lds     rx_char, UDR0
+
+
+        ; Seleccionar Senal 13
+        cpi     rx_char, '1'
+        breq    CMD_SIG13
+
+
+        ; Seleccionar Senal 15
+        cpi     rx_char, '2'
+        breq    CMD_SIG15
+
+
+        ; Aumentar frecuencia
+        cpi     rx_char, '+'
+        breq    CMD_MAS_RAPIDO
+
+
+        ; Disminuir frecuencia
+        cpi     rx_char, '-'
+        breq    CMD_MAS_LENTO
+
+
+        ; Cualquier otro caracter se ignora
+        rjmp    MAIN_LOOP
