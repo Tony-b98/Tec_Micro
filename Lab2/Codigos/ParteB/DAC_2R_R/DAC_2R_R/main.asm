@@ -105,3 +105,138 @@ MAIN_LOOP:
 
         ; Cualquier otro caracter se ignora
         rjmp    MAIN_LOOP
+
+
+;=====================================================================
+; COMANDOS UART
+;=====================================================================
+CMD_SIG13:
+
+        rcall   SELECCIONAR_SIG13
+
+        ldi     ZL, LOW(MSG_SIG13*2)
+        ldi     ZH, HIGH(MSG_SIG13*2)
+
+        rcall   PRINT_STRING
+
+        rjmp    MAIN_LOOP
+
+
+CMD_SIG15:
+
+        rcall   SELECCIONAR_SIG15
+
+        ldi     ZL, LOW(MSG_SIG15*2)
+        ldi     ZH, HIGH(MSG_SIG15*2)
+
+        rcall   PRINT_STRING
+
+        rjmp    MAIN_LOOP
+
+
+CMD_MAS_RAPIDO:
+
+        rcall   TIMER1_MAS_RAPIDO
+
+        rjmp    MAIN_LOOP
+
+
+CMD_MAS_LENTO:
+
+        rcall   TIMER1_MAS_LENTO
+
+        rjmp    MAIN_LOOP
+
+
+;=====================================================================
+; SELECCION DE SENAL
+;
+; Las dos LUT tienen exactamente 256 muestras.
+;
+; Como r_idx es un registro de 8 bits:
+;
+;   0, 1, 2, ... 254, 255, 0, 1...
+;
+; Por lo tanto no necesitamos guardar un largo de 256.
+;=====================================================================
+
+SELECCIONAR_SIG13:
+
+        ; Guardar estado previo de interrupciones
+        in      temp, SREG
+
+        cli
+
+        ; Direccion inicial de la tabla
+        ldi     r_baseL, LOW(SIG13*2)
+        ldi     r_baseH, HIGH(SIG13*2)
+
+        ; Empezar desde muestra 0
+        clr     r_idx
+
+        ; Restaurar estado previo
+        out     SREG, temp
+
+        ret
+
+
+SELECCIONAR_SIG15:
+
+        in      temp, SREG
+
+        cli
+
+        ; Direccion inicial de la tabla
+        ldi     r_baseL, LOW(SIG15*2)
+        ldi     r_baseH, HIGH(SIG15*2)
+
+        ; Empezar desde muestra 0
+        clr     r_idx
+
+        out     SREG, temp
+
+        ret
+
+
+;=====================================================================
+; INICIALIZACION DE PUERTOS
+;=====================================================================
+PORTS_INIT:
+
+        ;-------------------------------------------------------------
+        ; PORTB
+        ;
+        ; PB0 -> bit 0 DAC
+        ; PB1 -> bit 1 DAC
+        ; PB2 -> bit 2 DAC
+        ; PB3 -> bit 3 DAC
+        ; PB4 -> bit 4 DAC
+        ; PB5 -> bit 5 DAC
+        ;
+        ; PB6/PB7 se dejan libres porque corresponden al cristal.
+        ;-------------------------------------------------------------
+
+        ldi     temp, 0x3F
+        out     DDRB, temp
+
+
+        ;-------------------------------------------------------------
+        ; PORTD
+        ;
+        ; PD6 -> bit 6 DAC
+        ; PD7 -> bit 7 DAC
+        ;
+        ; PD0/PD1 quedan para UART.
+        ;-------------------------------------------------------------
+
+        ldi     temp, 0xC0
+        out     DDRD, temp
+
+
+        ; DAC inicialmente en 0
+        clr     temp
+
+        out     PORTB, temp
+        out     PORTD, temp
+
+        ret
