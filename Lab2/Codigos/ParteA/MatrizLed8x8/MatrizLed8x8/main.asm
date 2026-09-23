@@ -315,4 +315,86 @@ FILA_6:
 FILA_7:
     sbi PORTC, 4
     ret
+; =====================================================================
+; MENU POR UART (no bloqueante: si no llego nada, sigue de largo)
+; =====================================================================
+
+LEER_UART:
+    lds temp, UCSR0A
+    sbrs temp, RXC0
+    ret
+    lds uartc, UDR0
+    mov temp, uartc
+
+    cpi temp, '1'
+    brne CHK_2
+    clr imagen
+    ldi ZL, low(MSG_OK_SONRISA*2)
+    ldi ZH, high(MSG_OK_SONRISA*2)
+    rjmp UART_ACK
+
+CHK_2:
+    cpi temp, '2'
+    brne CHK_3
+    ldi imagen, 1
+    ldi ZL, low(MSG_OK_CORAZON*2)
+    ldi ZH, high(MSG_OK_CORAZON*2)
+    rjmp UART_ACK
+
+CHK_3:
+    cpi temp, '3'
+    brne CHK_4
+    ldi imagen, 2
+    ldi ZL, low(MSG_OK_ASTERISCO*2)
+    ldi ZH, high(MSG_OK_ASTERISCO*2)
+    rjmp UART_ACK
+
+CHK_4:
+    cpi temp, '4'
+    brne CHK_MAS
+    ldi imagen, 3
+    ldi ZL, low(MSG_OK_MENSAJE*2)
+    ldi ZH, high(MSG_OK_MENSAJE*2)
+    rjmp UART_ACK
+
+CHK_MAS:
+    cpi temp, '+'
+    brne CHK_MENOS
+    rcall SCROLL_MAS_RAPIDO
+    ret
+
+CHK_MENOS:
+    cpi temp, '-'
+    brne LEER_UART_FIN
+    rcall SCROLL_MAS_LENTO
+LEER_UART_FIN:
+    ret
+
+UART_ACK:
+    rcall UART_SEND_STRING
+    ret
+
+SCROLL_MAS_RAPIDO:
+    mov temp, scrolldly
+    cpi temp, SCROLL_MIN + SCROLL_STEP
+    brsh RESTAR_STEP
+    ldi temp, SCROLL_MIN
+    rjmp GUARDAR_RAPIDO
+RESTAR_STEP:
+    subi temp, SCROLL_STEP
+GUARDAR_RAPIDO:
+    mov scrolldly, temp
+    ret
+
+SCROLL_MAS_LENTO:
+    mov temp, scrolldly
+    cpi temp, (SCROLL_MAX + 1) - SCROLL_STEP
+    brlo SUMAR_STEP
+    ldi temp, SCROLL_MAX
+    rjmp GUARDAR_LENTO
+SUMAR_STEP:
+    subi temp, -SCROLL_STEP        ; subi con negativo = sumar (no existe addi)
+GUARDAR_LENTO:
+    mov scrolldly, temp
+    ret
 
