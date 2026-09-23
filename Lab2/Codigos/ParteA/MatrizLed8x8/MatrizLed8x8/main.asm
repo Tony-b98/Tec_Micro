@@ -105,3 +105,164 @@ LIMPIAR_FRAME:
     ldi ZL, low(MSG_MENU*2)
     ldi ZH, high(MSG_MENU*2)
     rcall UART_SEND_STRING
+	
+; PROGRAMA PRINCIPAL
+MAIN:
+    rcall MOSTRAR_IMAGEN
+    rcall LEER_UART
+    rjmp MAIN
+
+
+; MOSTRAR IMAGEN / MENSAJE (segun el registro "imagen")
+MOSTRAR_IMAGEN:
+    cpi imagen, 3
+    breq SHOW_SCROLL
+
+    cpi imagen, 0
+    breq CARGAR_SONRISA
+    cpi imagen, 1
+    breq CARGAR_CORAZON
+    rjmp CARGAR_ASTERISCO
+
+;Figuras fijas 
+CARGAR_SONRISA:
+    ldi ZL, low(SONRISA*2)
+    ldi ZH, high(SONRISA*2)
+    rjmp INICIAR_MATRIZ
+
+CARGAR_CORAZON:
+    ldi ZL, low(CORAZON*2)
+    ldi ZH, high(CORAZON*2)
+    rjmp INICIAR_MATRIZ
+
+CARGAR_ASTERISCO:
+    ldi ZL, low(ASTERISCO*2)
+    ldi ZH, high(ASTERISCO*2)
+
+INICIAR_MATRIZ:
+    clr fila
+    ldi temp2, 8
+    rjmp BARRIDO_FLASH
+
+; BARRIDO_FLASH: multiplexado leyendo el patron desde FLASH (lpm)
+; Se usa para las 3 figuras fijas (sin cambios respecto al original)
+BARRIDO_FLASH:
+    rcall APAGAR_FILAS
+
+    lpm patron, Z+
+    com patron
+
+    mov temp, patron
+    andi temp, 0b00111111
+    out PORTB, temp
+
+    mov temp, patron
+    lsr temp
+    lsr temp
+    lsr temp
+    lsr temp
+    lsr temp
+    lsr temp
+    andi temp, 0b00000011
+    ori temp, 0b00001100
+    out PORTC, temp
+
+    rcall ACTIVAR_FILA
+    rcall DELAY_FILA
+
+    inc fila
+    dec temp2
+    brne BARRIDO_FLASH
+
+    rcall APAGAR_FILAS
+    ret
+
+; SHOW_SCROLL: muestra el frame buffer (RAM) del mensaje y controla
+; el ritmo de avance del desplazamiento
+SHOW_SCROLL:
+    rcall BARRIDO_RAM
+
+    dec tickcnt
+    brne FIN_SHOW_SCROLL
+    mov tickcnt, scrolldly
+    rcall ADVANCE_SCROLL
+FIN_SHOW_SCROLL:
+    ret
+
+; BARRIDO_RAM: igual que BARRIDO_FLASH pero lee el patron de fila
+; desde el frame buffer en RAM (ld) en lugar de la flash (lpm)
+BARRIDO_RAM:
+    clr fila
+    ldi temp2, 8
+    ldi YL, low(FRAME)
+    ldi YH, high(FRAME)
+
+BARRIDO_RAM_LOOP:
+    rcall APAGAR_FILAS
+
+    ld patron, Y+
+    com patron
+
+    mov temp, patron
+    andi temp, 0b00111111
+    out PORTB, temp
+
+    mov temp, patron
+    lsr temp
+    lsr temp
+    lsr temp
+    lsr temp
+    lsr temp
+    lsr temp
+    andi temp, 0b00000011
+    ori temp, 0b00001100
+    out PORTC, temp
+
+    rcall ACTIVAR_FILA
+    rcall DELAY_FILA
+
+    inc fila
+    dec temp2
+    brne BARRIDO_RAM_LOOP
+
+    rcall APAGAR_FILAS
+    ret
+
+; ADVANCE_SCROLL: toma la siguiente columna del mensaje (flash) e
+; inserta un bit por fila en el frame buffer, desplazando el resto
+ADVANCE_SCROLL:
+    ; Z = MENSAJE_COLS + col_idx (direccion de byte en flash)
+    ldi ZL, low(MENSAJE_COLS*2)
+    ldi ZH, high(MENSAJE_COLS*2)
+    add ZL, col_idx
+    adc ZH, zero
+    lpm newcol, Z
+
+    ; Avanzar y hacer wrap del indice del mensaje
+    inc col_idx
+    mov temp, col_idx
+    cpi temp, MENSAJE_LEN
+    brlo FIN_INDEX
+    clr col_idx
+FIN_INDEX:
+
+    ; Insertar el bit r de "newcol" como bit7 de FRAME[r], desplazando
+    ; el resto de la fila un bit a la derecha (entra por la derecha,
+    ; sale por la izquierda -> texto se mueve de derecha a izquierda)
+    ldi temp, 8
+    mov rowcnt, temp
+    ldi YL, low(FRAME)
+    ldi YH, high(FRAME)
+
+ADVANCE_SCROLL_ROWS:
+    ld temp, Y
+    lsr temp
+    lsr newcol
+    brcc ADVANCE_SCROLL_SKIP
+    ori temp, 0b10000000
+ADVANCE_SCROLL_SKIP:
+    st Y+, temp
+    dec rowcnt
+    brne ADVANCE_SCROLL_ROWS
+    ret
+
