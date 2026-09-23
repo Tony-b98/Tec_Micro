@@ -58,3 +58,50 @@ inicio:
     ; PC0-PC1 = columnas 7 y 8 // PC4-PC5 = filas 7 y 8
     ldi temp, 0b0011_0011
     out DDRC, temp
+
+    ;  filas apagadas
+    ldi temp, 0b00000000
+    out PORTC, temp
+
+ 
+
+    ; Registro cero (usado para sumas de 16 bits con acarreo)
+    clr zero
+
+    ; ---------------- Configurar UART (9600, 8N1) ----------------
+    ldi temp, high(UBRR_VAL)
+    sts UBRR0H, temp
+    ldi temp, low(UBRR_VAL)
+    sts UBRR0L, temp
+    ldi temp, (1<<RXEN0)|(1<<TXEN0)
+    sts UCSR0B, temp
+    ldi temp, (1<<UCSZ01)|(1<<UCSZ00)   ; 8 bits, sin paridad, 1 stop bit
+    sts UCSR0C, temp
+
+    ; ---------------- Inicializar frame buffer del mensaje --------
+    ldi YL, low(FRAME)
+    ldi YH, high(FRAME)
+    clr temp
+    ldi temp2, 8
+
+LIMPIAR_FRAME:
+    st Y+, temp
+    dec temp2
+    brne LIMPIAR_FRAME
+
+    clr col_idx
+    ldi temp, 15              ; velocidad inicial (ajustable por UART +/-)
+    mov scrolldly, temp
+    mov tickcnt, scrolldly
+
+    ; Modo inicial: mensaje con desplazamiento
+    ldi imagen, 3
+
+    ; ---------------- Mensaje de bienvenida + menu por UART -------
+    ldi ZL, low(MSG_BIENVENIDA*2)
+    ldi ZH, high(MSG_BIENVENIDA*2)
+    rcall UART_SEND_STRING
+
+    ldi ZL, low(MSG_MENU*2)
+    ldi ZH, high(MSG_MENU*2)
+    rcall UART_SEND_STRING
