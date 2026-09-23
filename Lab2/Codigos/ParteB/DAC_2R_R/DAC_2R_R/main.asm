@@ -246,4 +246,78 @@ PRINT_STRING:
 
 PRINT_STRING_FIN:
         ret
+		
+
+TIMER1_INIT:
+        ; Detener Timer1 y configurar modo CTC
+        clr     temp
+        sts     TCCR1A, temp
+
+        ldi     temp, (1<<WGM12)
+        sts     TCCR1B, temp
+
+        ldi     temp, HIGH(OCR1A_INIT)
+        sts     OCR1AH, temp
+
+        ldi     temp, LOW(OCR1A_INIT)
+        sts     OCR1AL, temp
+
+        ; TCNT1 = 0
+        clr     temp
+
+        sts     TCNT1H, temp
+        sts     TCNT1L, temp
+
+        ; Limpiar posible bandera pendiente
+        ldi     temp, (1<<OCF1A)
+        sts     TIFR1, temp
+
+        ; Habilitar interrupcion Compare Match A
+        ldi     temp, (1<<OCIE1A)
+        sts     TIMSK1, temp
+
+        ; Arrancar Timer1
+        ldi     temp, (1<<WGM12)|(1<<CS11)
+        sts     TCCR1B, temp
+
+        ret
+
+		; AUMENTAR FRECUENCIA
+; Menor OCR1A = mayor frecuencia.
+TIMER1_MAS_RAPIDO:
+        ; Leer OCR1A
+        ; Para lectura:
+        ; primero LOW
+        ; despues HIGH
+        
+        lds     ZL, OCR1AL
+        lds     ZH, OCR1AH
+
+        ; OCR1A = OCR1A - 20
+        subi    ZL, LOW(OCR1A_STEP)
+        sbci    ZH, HIGH(OCR1A_STEP)
+
+        ; Verificar limite minimo
+        cpi     ZL, LOW(OCR1A_MIN)
+
+        ldi     temp, HIGH(OCR1A_MIN)
+        cpc     ZH, temp
+
+        brge    TMR_SET_RAPIDO
+
+        ; Si pasa el limite:
+        ; OCR1A = OCR1A_MIN
+        ldi     ZL, LOW(OCR1A_MIN)
+        ldi     ZH, HIGH(OCR1A_MIN)
+
+
+TMR_SET_RAPIDO:
+
+        ; Escribir HIGH primero
+        sts     OCR1AH, ZH
+
+        ; Escribir LOW despues
+        sts     OCR1AL, ZL
+
+        ret
 
