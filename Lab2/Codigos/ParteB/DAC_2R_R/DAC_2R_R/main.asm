@@ -106,10 +106,8 @@ MAIN_LOOP:
         ; Cualquier otro caracter se ignora
         rjmp    MAIN_LOOP
 
-
-;=====================================================================
 ; COMANDOS UART
-;=====================================================================
+
 CMD_SIG13:
 
         rcall   SELECCIONAR_SIG13
@@ -148,18 +146,6 @@ CMD_MAS_LENTO:
         rjmp    MAIN_LOOP
 
 
-;=====================================================================
-; SELECCION DE SENAL
-;
-; Las dos LUT tienen exactamente 256 muestras.
-;
-; Como r_idx es un registro de 8 bits:
-;
-;   0, 1, 2, ... 254, 255, 0, 1...
-;
-; Por lo tanto no necesitamos guardar un largo de 256.
-;=====================================================================
-
 SELECCIONAR_SIG13:
 
         ; Guardar estado previo de interrupciones
@@ -197,46 +183,67 @@ SELECCIONAR_SIG15:
 
         ret
 
-
-;=====================================================================
 ; INICIALIZACION DE PUERTOS
-;=====================================================================
+
 PORTS_INIT:
-
-        ;-------------------------------------------------------------
-        ; PORTB
-        ;
-        ; PB0 -> bit 0 DAC
-        ; PB1 -> bit 1 DAC
-        ; PB2 -> bit 2 DAC
-        ; PB3 -> bit 3 DAC
-        ; PB4 -> bit 4 DAC
-        ; PB5 -> bit 5 DAC
-        ;
-        ; PB6/PB7 se dejan libres porque corresponden al cristal.
-        ;-------------------------------------------------------------
-
-        ldi     temp, 0x3F
+        ; PORTB: PB0 -> bit 0 DAC / PB1 -> bit 1 DAC
+        ;        PB2 -> bit 2 DAC / PB3 -> bit 3 DAC
+        ;        PB4 -> bit 4 DAC / PB5 -> bit 5 DAC
+	    ldi     temp, 0x3F
         out     DDRB, temp
-
-
-        ;-------------------------------------------------------------
+				
         ; PORTD
-        ;
-        ; PD6 -> bit 6 DAC
-        ; PD7 -> bit 7 DAC
-        ;
-        ; PD0/PD1 quedan para UART.
-        ;-------------------------------------------------------------
-
+        ; PD6 -> bit 6 DAC / PD7 -> bit 7 DAC
         ldi     temp, 0xC0
         out     DDRD, temp
 
-
         ; DAC inicialmente en 0
         clr     temp
-
         out     PORTB, temp
         out     PORTD, temp
+        ret
+UART_INIT:
+
+        ; Baud rate
+        ldi     temp, HIGH(UBRRVAL)
+        sts     UBRR0H, temp
+
+        ldi     temp, LOW(UBRRVAL)
+        sts     UBRR0L, temp
+
+
+        ; Habilitar RX y TX
+        ldi     temp, (1<<RXEN0)|(1<<TXEN0)
+        sts     UCSR0B, temp
+
+
+        ; 8 bits de datos
+        ; sin paridad
+        ; 1 bit de stop
+        ldi     temp, (1<<UCSZ01)|(1<<UCSZ00)
+        sts     UCSR0C, temp
 
         ret
+
+; Transmición UART
+UART_TX:
+        ; Leer estado UART
+        lds     r0, UCSR0A
+		; Esperar hasta que el buffer este libre
+        sbrs    r0, UDRE0
+        rjmp    UART_TX
+		; Transmitir
+        sts     UDR0, temp
+		ret
+; Imprimir string
+; Z apunta al comienzo del string en Flash.
+PRINT_STRING:
+        lpm     temp, Z+
+        cpi     temp, 0
+        breq    PRINT_STRING_FIN
+        rcall   UART_TX
+        rjmp    PRINT_STRING
+
+PRINT_STRING_FIN:
+        ret
+
