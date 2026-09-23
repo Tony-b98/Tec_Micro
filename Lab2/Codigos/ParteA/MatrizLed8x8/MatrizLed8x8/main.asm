@@ -62,13 +62,11 @@ inicio:
     ;  filas apagadas
     ldi temp, 0b00000000
     out PORTC, temp
-
- 
-
-    ; Registro cero (usado para sumas de 16 bits con acarreo)
+	
+	; Registro cero (usado para sumas de 16 bits con acarreo)
     clr zero
 
-    ; ---------------- Configurar UART (9600, 8N1) ----------------
+    ; Configurar UART (9600, 8N1)
     ldi temp, high(UBRR_VAL)
     sts UBRR0H, temp
     ldi temp, low(UBRR_VAL)
@@ -78,7 +76,7 @@ inicio:
     ldi temp, (1<<UCSZ01)|(1<<UCSZ00)   ; 8 bits, sin paridad, 1 stop bit
     sts UCSR0C, temp
 
-    ; ---------------- Inicializar frame buffer del mensaje --------
+    ; Inicializar frame buffer del mensaje 
     ldi YL, low(FRAME)
     ldi YH, high(FRAME)
     clr temp
@@ -97,7 +95,7 @@ LIMPIAR_FRAME:
     ; Modo inicial: mensaje con desplazamiento
     ldi imagen, 3
 
-    ; ---------------- Mensaje de bienvenida + menu por UART -------
+    ; Mensaje de bienvenida + menu por UART
     ldi ZL, low(MSG_BIENVENIDA*2)
     ldi ZH, high(MSG_BIENVENIDA*2)
     rcall UART_SEND_STRING
@@ -264,5 +262,57 @@ ADVANCE_SCROLL_SKIP:
     st Y+, temp
     dec rowcnt
     brne ADVANCE_SCROLL_ROWS
+    ret
+
+;Rutinas de filas
+
+APAGAR_FILAS:
+    in temp, PORTD
+    andi temp, 0b00000011
+    out PORTD, temp
+
+    in temp, PORTC
+    andi temp, 0b0000_1111
+    out PORTC, temp
+    ret
+
+ACTIVAR_FILA:
+    cpi fila, 0
+    breq FILA_1
+    cpi fila, 1
+    breq FILA_2
+    cpi fila, 2
+    breq FILA_3
+    cpi fila, 3
+    breq FILA_4
+    cpi fila, 4
+    breq FILA_5
+    cpi fila, 5
+    breq FILA_6
+    cpi fila, 6
+    breq FILA_7
+	sbi PORTC, 5
+    ret
+
+FILA_1:
+    sbi PORTD, 2
+    ret
+FILA_2:
+    sbi PORTD, 3
+    ret
+FILA_3:
+    sbi PORTD, 4
+    ret
+FILA_4:
+    sbi PORTD, 5
+    ret
+FILA_5:
+    sbi PORTD, 6
+    ret
+FILA_6:
+    sbi PORTD, 7
+    ret
+FILA_7:
+    sbi PORTC, 4
     ret
 
