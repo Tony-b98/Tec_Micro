@@ -398,3 +398,118 @@ GUARDAR_LENTO:
     mov scrolldly, temp
     ret
 
+; =====================================================================
+; RUTINAS UART DE ENVIO
+; =====================================================================
+
+; Envia el caracter en "temp" por UART (bloqueante, espera buffer libre)
+UART_SEND_CHAR:
+    lds temp2, UCSR0A
+    sbrs temp2, UDRE0
+    rjmp UART_SEND_CHAR
+    sts UDR0, temp
+    ret
+
+; Envia una cadena terminada en 0x00 apuntada por Z (direccion de flash)
+UART_SEND_STRING:
+    lpm temp, Z+
+    cpi temp, 0
+    breq FIN_SEND_STRING
+    rcall UART_SEND_CHAR
+    rjmp UART_SEND_STRING
+FIN_SEND_STRING:
+    ret
+
+; =====================================================================
+; DELAY (igual al original)
+; =====================================================================
+DELAY_FILA:
+    ldi delay1, 20
+DELAY_EXT:
+    ldi delay2, 200
+DELAY_INT:
+    dec delay2
+    brne DELAY_INT
+    dec delay1
+    brne DELAY_EXT
+    ret
+
+; =====================================================================
+; DIBUJOS 8x8 (figuras fijas, sin cambios)
+; =====================================================================
+SONRISA:
+.db 0b0011_1100, 0b0100_0010, 0b1010_0101, 0b1000_0001
+.db 0b1010_0101, 0b1001_1001, 0b0100_0010, 0b0011_1100
+
+CORAZON:
+.db 0b0000_0000, 0b0110_0110, 0b1111_1111, 0b1111_1111
+.db 0b0111_1110, 0b0011_1100, 0b0001_1000, 0b0000_0000
+
+ASTERISCO:
+.db 0b0001_1000, 0b0101_1010, 0b0011_1100, 0b1111_1111
+.db 0b0011_1100, 0b0101_1010, 0b0001_1000, 0b0000_0000
+
+; =====================================================================
+; FUENTE DEL MENSAJE "HELLO WORLD" - formato COLUMNA (5 cols x 7 filas,
+; bit0 = fila superior). Fuente clasica 5x7 de dominio publico usada en
+; proyectos de matrices LED. Cada letra: 5 bytes de datos + 1 byte de
+; separacion (0x00). Si alguna letra se ve distinta a lo esperado en la
+; matriz fisica, se puede ajustar el byte correspondiente sin tocar el
+; resto del programa.
+; =====================================================================
+MENSAJE_COLS:
+; H
+.db 0x7F,0x08,0x08,0x08,0x7F,0x00
+; E
+.db 0x7F,0x49,0x49,0x49,0x41,0x00
+; L
+.db 0x7F,0x40,0x40,0x40,0x40,0x00
+; L
+.db 0x7F,0x40,0x40,0x40,0x40,0x00
+; O
+.db 0x3E,0x41,0x41,0x41,0x3E,0x00,0x00,0x00   ; espacio extra (fin de palabra)
+; W
+.db 0x3F,0x40,0x38,0x40,0x3F,0x00
+; O
+.db 0x3E,0x41,0x41,0x41,0x3E,0x00
+; R
+.db 0x7F,0x09,0x19,0x29,0x46,0x00
+; L
+.db 0x7F,0x40,0x40,0x40,0x40,0x00
+; D
+.db 0x7F,0x41,0x41,0x22,0x1C,0x00
+; relleno en blanco para que el mensaje termine de salir antes de repetirse
+.db 0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00
+MENSAJE_END:
+
+.equ MENSAJE_LEN = (MENSAJE_END - MENSAJE_COLS) * 2
+
+; =====================================================================
+; CADENAS DE TEXTO PARA LA UART
+; Cada .DB contiene una cantidad PAR de bytes.
+; =====================================================================
+
+MSG_BIENVENIDA:
+.db "Bienvenido al Menu",13,10,0,0
+
+; IMPORTANTE: todo el menu es UNA sola cadena que termina en un unico
+; byte 0 (al final). Antes el primer .db terminaba en 0,0, y como
+; UART_SEND_STRING corta al primer byte 0 que encuentra, solo se
+; enviaba la primera linea. Ahora se manda el menu completo de un tiro.
+MSG_MENU:
+.db "Seleccione una opcion:",13,10
+.db "1 = Sonrisa",13,10,"2 = Corazon",13,10
+.db "3 = Asterisco",13,10,"4 = Mensaje (+ = mas rapido, - = mas lento)",13,10,0,0
+
+MSG_OK_SONRISA:
+.db "-> Sonrisa",13,10,0,0
+
+MSG_OK_CORAZON:
+.db "-> Corazon",13,10,0,0
+
+MSG_OK_ASTERISCO:
+.db "-> Asterisco",13,10,0,0
+
+MSG_OK_MENSAJE:
+.db "-> Mensaje HELLO WORLD",13,10,0,0
+
