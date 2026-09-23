@@ -321,3 +321,66 @@ TMR_SET_RAPIDO:
 
         ret
 
+; DISMINUIR FRECUENCIA
+; Mayor OCR1A = menor frecuencia.
+
+TIMER1_MAS_LENTO:
+
+        ; Leer OCR1A
+        lds     ZL, OCR1AL
+        lds     ZH, OCR1AH
+
+        ; OCR1A = OCR1A + 20
+
+        subi    ZL, LOW(-OCR1A_STEP)
+        sbci    ZH, HIGH(-OCR1A_STEP)
+
+        ; Verificar limite maximo
+
+        cpi     ZL, LOW(OCR1A_MAX)
+
+        ldi     temp, HIGH(OCR1A_MAX)
+        cpc     ZH, temp
+
+        brlo    TMR_SET_LENTO
+
+
+        ; Si supera OCR1A_MAX
+        ldi     ZL, LOW(OCR1A_MAX)
+        ldi     ZH, HIGH(OCR1A_MAX)
+
+
+TMR_SET_LENTO:
+
+        ; Escribir HIGH primero
+        sts     OCR1AH, ZH
+
+        ; Escribir LOW despues
+        sts     OCR1AL, ZL
+
+        ret
+
+; INTERRUPCION TIMER1 COMPARE MATCH A
+TIMER1_COMPA_ISR:
+
+        ; Guardar registros utilizados
+        push    temp
+        push    dato
+        push    ZL
+        push    ZH
+        ; Guardar SREG
+        in      temp, SREG
+        push    temp
+
+        ; Z = direccion base + indice
+
+        mov     ZL, r_baseL
+        mov     ZH, r_baseH
+
+        add     ZL, r_idx
+        adc     ZH, cero
+    
+	; Leer muestra desde Flash
+        lpm     dato, Z
+
+
