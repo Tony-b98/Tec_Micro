@@ -582,3 +582,95 @@ PEN_UP_NO_SAVE:
 
 PEN_UP_END:
     ret
+
+
+;TABLAS
+DRAW_PATH:
+DRAW_PATH_NEXT:
+    lpm dato, Z+
+    lpm dur, Z+
+
+    cpi dato, OP_END
+    breq DRAW_PATH_END
+
+    cpi dato, OP_PEN_DOWN
+    breq DRAW_PATH_PEN_DOWN
+
+    cpi dato, OP_PEN_UP
+    breq DRAW_PATH_PEN_UP
+
+    rcall MOVE_MASK
+    rjmp DRAW_PATH_NEXT
+
+DRAW_PATH_PEN_DOWN:
+    rcall PEN_DOWN
+    rjmp DRAW_PATH_NEXT
+
+DRAW_PATH_PEN_UP:
+    rcall PEN_UP
+    rjmp DRAW_PATH_NEXT
+
+DRAW_PATH_END:
+    rcall STOP_MOV
+    ret
+
+
+;FIGURAS GRANDES
+DRAW_PATH_BIG:
+DRAW_PATH_BIG_NEXT:
+    lpm dato, Z+
+    lpm dur, Z+
+
+    cpi dato, OP_END
+    breq DRAW_PATH_BIG_END
+
+    cpi dato, OP_PEN_DOWN
+    breq DRAW_PATH_BIG_PEN_DOWN
+
+    cpi dato, OP_PEN_UP
+    breq DRAW_PATH_BIG_PEN_UP
+
+    ; Escala x2.
+    lsl dur
+    rcall MOVE_MASK
+    rjmp DRAW_PATH_BIG_NEXT
+
+DRAW_PATH_BIG_PEN_DOWN:
+    rcall PEN_DOWN
+    rjmp DRAW_PATH_BIG_NEXT
+
+DRAW_PATH_BIG_PEN_UP:
+    rcall PEN_UP
+    rjmp DRAW_PATH_BIG_NEXT
+
+DRAW_PATH_BIG_END:
+    rcall STOP_MOV
+    ret
+
+
+DRAW_TRIANGLE_BIG:
+    ldi ZL, low(PATH_TRIANGLE<<1)
+    ldi ZH, high(PATH_TRIANGLE<<1)
+    rcall DRAW_PATH_BIG
+    ret
+
+
+DRAW_CIRCLE_BIG:
+    ldi ZL, low(PATH_CIRCLE<<1)
+    ldi ZH, high(PATH_CIRCLE<<1)
+    rcall DRAW_PATH_BIG
+    ret
+
+
+DRAW_STAR_BIG:
+    ldi ZL, low(PATH_STAR<<1)
+    ldi ZH, high(PATH_STAR<<1)
+    rcall DRAW_PATH_BIG
+    ret
+
+
+DRAW_PORYGON_BIG:
+    ldi ZL, low(PATH_PORYGON<<1)
+    ldi ZH, high(PATH_PORYGON<<1)
+    rcall DRAW_PATH_BIG
+    ret
