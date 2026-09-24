@@ -892,3 +892,265 @@ DRAW_CUBE:
     ldi dur, 60
     rcall MOVE_MASK
 	ret
+	
+DRAW_PORYGON:
+    ldi ZL, low(PATH_PORYGON<<1)
+    ldi ZH, high(PATH_PORYGON<<1)
+    rcall DRAW_PATH
+    ret
+
+
+; FIGURAS MINI PARA EL COMANDO T
+; Los dibujos originales NO se modifican.
+; T usa trayectorias basadas en las matrices originales
+DRAW_PATH_MINI:
+DRAW_PATH_MINI_NEXT:
+    lpm dato, Z+
+    lpm dur, Z+
+
+    cpi dato, OP_END
+    breq DRAW_PATH_MINI_END
+
+    cpi dato, OP_PEN_DOWN
+    breq DRAW_PATH_MINI_PEN_DOWN
+
+    cpi dato, OP_PEN_UP
+    breq DRAW_PATH_MINI_PEN_UP
+
+    lsr dur
+
+    ; Nunca permitir duracion 0.
+    tst dur
+    brne DRAW_PATH_MINI_DUR_OK
+    ldi dur, 1
+
+DRAW_PATH_MINI_DUR_OK:
+    rcall MOVE_MASK
+    rjmp DRAW_PATH_MINI_NEXT
+
+DRAW_PATH_MINI_PEN_DOWN:
+    rcall PEN_DOWN
+    rjmp DRAW_PATH_MINI_NEXT
+
+DRAW_PATH_MINI_PEN_UP:
+    rcall PEN_UP
+    rjmp DRAW_PATH_MINI_NEXT
+
+DRAW_PATH_MINI_END:
+    rcall STOP_MOV
+    ret
+
+
+DRAW_TRIANGLE_MINI:
+    ldi ZL, low(PATH_TRIANGLE_T<<1)
+    ldi ZH, high(PATH_TRIANGLE_T<<1)
+    rcall DRAW_PATH
+    ret
+
+
+DRAW_CIRCLE_MINI:
+    ldi ZL, low(PATH_CIRCLE_T<<1)
+    ldi ZH, high(PATH_CIRCLE_T<<1)
+    rcall DRAW_PATH
+    ret
+
+
+DRAW_STAR_MINI:
+    ldi ZL, low(PATH_STAR_T<<1)
+    ldi ZH, high(PATH_STAR_T<<1)
+    rcall DRAW_PATH
+    ret
+
+
+DRAW_PORYGON_MINI:
+    ldi ZL, low(PATH_PORYGON_T<<1)
+    ldi ZH, high(PATH_PORYGON_T<<1)
+    rcall DRAW_PATH
+    ret
+
+; CUBO MINI
+; Misma secuencia del cubo original, un poco más grande.
+DRAW_CUBE_MINI:
+    rcall PEN_UP
+
+    ldi dato, MV_R
+    ldi dur, 75
+    rcall MOVE_MASK
+
+    rcall PEN_DOWN
+
+    ldi dato, MV_DL
+    ldi dur, 75
+    rcall MOVE_MASK
+
+    ldi dato, MV_D
+    ldi dur, 75
+    rcall MOVE_MASK
+
+    ldi dato, MV_UR
+    ldi dur, 75
+    rcall MOVE_MASK
+
+    ldi dato, MV_DL
+    ldi dur, 75
+    rcall MOVE_MASK
+
+    ldi dato, MV_R
+    ldi dur, 75
+    rcall MOVE_MASK
+
+    ldi dato, MV_UR
+    ldi dur, 75
+    rcall MOVE_MASK
+
+    ldi dato, MV_DL
+    ldi dur, 75
+    rcall MOVE_MASK
+
+    ldi dato, MV_U
+    ldi dur, 75
+    rcall MOVE_MASK
+
+    ldi dato, MV_UR
+    ldi dur, 75
+    rcall MOVE_MASK
+
+    ldi dato, MV_DL
+    ldi dur, 75
+    rcall MOVE_MASK
+
+    ldi dato, MV_L
+    ldi dur, 75
+    rcall MOVE_MASK
+
+    ldi dato, MV_UR
+    ldi dur, 75
+    rcall MOVE_MASK
+
+    ldi dato, MV_D
+    ldi dur, 75
+    rcall MOVE_MASK
+
+    ldi dato, MV_R
+    ldi dur, 75
+    rcall MOVE_MASK
+
+    ldi dato, MV_U
+    ldi dur, 75
+    rcall MOVE_MASK
+
+    ldi dato, MV_L
+    ldi dur, 75
+    rcall MOVE_MASK
+
+    ; Figura completa
+    rcall PEN_UP
+
+    ldi dato, MV_L
+    ldi dur, 75
+    rcall MOVE_MASK
+
+    ret
+
+; REANUDACION DE COMANDOS INDIVIDUALES DESPUES DE RESET
+; El reset ocurre en el PEN_UP final.
+; Por eso estas rutinas ejecutan solamente los movimientos que
+; quedaron pendientes hasta llegar nuevamente a HOME.
+SINGLE_RESUME_TRIANGLE:
+    ldi dato, MV_L
+    ldi dur, 220
+    rcall MOVE_MASK
+
+    ; Retorno exterior con nuevo centrado.
+    ldi dato, MV_U
+    ldi dur, 240
+    rcall MOVE_MASK
+
+    ldi dato, MV_L
+    ldi dur, 110
+    rcall MOVE_MASK
+
+    rcall CLEAR_PERSIST_STATE
+    jmp DRAW_FINISHED
+
+
+SINGLE_RESUME_CIRCLE:
+    ldi dato, MV_L
+    ldi dur, 240
+    rcall MOVE_MASK
+
+    ; Retorno exterior con nuevo centrado.
+    ldi dato, MV_U
+    ldi dur, 110
+    rcall MOVE_MASK
+
+    ldi dato, MV_L
+    ldi dur, 90
+    rcall MOVE_MASK
+
+    rcall MOVE_LEFT_SLOT
+
+    rcall CLEAR_PERSIST_STATE
+    jmp DRAW_FINISHED
+
+
+SINGLE_RESUME_STAR:
+    ldi dato, MV_L
+    ldi dur, 240
+    rcall MOVE_MASK
+
+    ; Retorno exterior con nuevo centrado.
+    ldi dato, MV_U
+    ldi dur, 140
+    rcall MOVE_MASK
+
+    ldi dato, MV_L
+    ldi dur, 95
+    rcall MOVE_MASK
+
+    rcall MOVE_LEFT_SLOT
+    rcall MOVE_LEFT_SLOT
+
+    rcall CLEAR_PERSIST_STATE
+    jmp DRAW_FINISHED
+
+
+SINGLE_RESUME_CUBE:
+    ldi dato, MV_L
+    ldi dur, 120
+    rcall MOVE_MASK
+
+    ; Retorno exterior con nuevo centrado.
+    ldi dato, MV_U
+    ldi dur, 170
+    rcall MOVE_MASK
+
+    ldi dato, MV_L
+    ldi dur, 150
+    rcall MOVE_MASK
+
+    rcall MOVE_UP_ROW
+
+    rcall CLEAR_PERSIST_STATE
+    jmp DRAW_FINISHED
+
+
+SINGLE_RESUME_PORYGON:
+    ldi dato, MV_U
+    ldi dur, 160
+    rcall MOVE_MASK
+
+    ; Retorno exterior con nuevo centrado.
+    ldi dato, MV_U
+    ldi dur, 85
+    rcall MOVE_MASK
+
+    ldi dato, MV_L
+    ldi dur, 85
+    rcall MOVE_MASK
+
+    rcall MOVE_UP_ROW
+    rcall MOVE_LEFT_SLOT
+
+    rcall CLEAR_PERSIST_STATE
+    jmp DRAW_FINISHED
