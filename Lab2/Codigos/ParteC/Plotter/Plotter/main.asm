@@ -1154,3 +1154,180 @@ SINGLE_RESUME_PORYGON:
 
     rcall CLEAR_PERSIST_STATE
     jmp DRAW_FINISHED
+
+; POSICIONES INDIVIDUALES
+; Todos los comandos parten de HOME y vuelven a HOME.
+PLOT_TRIANGLE_SLOT:
+    ; Q1 - superior izquierdo
+    rcall PEN_UP
+
+    ldi dato, MV_R
+    ldi dur, 110
+    rcall MOVE_MASK
+    ldi dato, MV_D
+    ldi dur, 240
+    rcall MOVE_MASK
+
+    rcall DRAW_TRIANGLE_BIG
+
+    ldi dato, MV_U
+    ldi dur, 240
+    rcall MOVE_MASK
+    ldi dato, MV_L
+    ldi dur, 110
+    rcall MOVE_MASK
+    ret
+
+
+PLOT_CIRCLE_SLOT:
+    ; Q2 - superior central
+    rcall PEN_UP
+    rcall MOVE_RIGHT_SLOT
+
+    ldi dato, MV_R
+    ldi dur, 90
+    rcall MOVE_MASK
+    ldi dato, MV_D
+    ldi dur, 110
+    rcall MOVE_MASK
+
+    rcall DRAW_CIRCLE_BIG
+
+    ldi dato, MV_U
+    ldi dur, 110
+    rcall MOVE_MASK
+    ldi dato, MV_L
+    ldi dur, 90
+    rcall MOVE_MASK
+
+    rcall MOVE_LEFT_SLOT
+    ret
+
+
+PLOT_STAR_SLOT:
+    ; Q3 - superior derecho
+    rcall PEN_UP
+    rcall MOVE_RIGHT_SLOT
+    rcall MOVE_RIGHT_SLOT
+
+    ldi dato, MV_R
+    ldi dur, 95
+    rcall MOVE_MASK
+    ldi dato, MV_D
+    ldi dur, 140
+    rcall MOVE_MASK
+
+    rcall DRAW_STAR_BIG
+
+    ldi dato, MV_U
+    ldi dur, 140
+    rcall MOVE_MASK
+    ldi dato, MV_L
+    ldi dur, 95
+    rcall MOVE_MASK
+
+    rcall MOVE_LEFT_SLOT
+    rcall MOVE_LEFT_SLOT
+    ret
+
+
+PLOT_CUBE_SLOT:
+    ; Q4 - inferior izquierdo
+    rcall PEN_UP
+    rcall MOVE_DOWN_ROW
+
+    ldi dato, MV_R
+    ldi dur, 150
+    rcall MOVE_MASK
+    ldi dato, MV_D
+    ldi dur, 170
+    rcall MOVE_MASK
+
+    rcall DRAW_CUBE_BIG
+
+    ldi dato, MV_U
+    ldi dur, 170
+    rcall MOVE_MASK
+    ldi dato, MV_L
+    ldi dur, 150
+    rcall MOVE_MASK
+
+    rcall MOVE_UP_ROW
+    ret
+
+
+PLOT_PORYGON_SLOT:
+    ; Q5 - inferior central
+    rcall PEN_UP
+    rcall MOVE_RIGHT_SLOT
+    rcall MOVE_DOWN_ROW
+
+    ldi dato, MV_R
+    ldi dur, 85
+    rcall MOVE_MASK
+    ldi dato, MV_D
+    ldi dur, 85
+    rcall MOVE_MASK
+
+    rcall DRAW_PORYGON_BIG
+
+    ldi dato, MV_U
+    ldi dur, 85
+    rcall MOVE_MASK
+    ldi dato, MV_L
+    ldi dur, 85
+    rcall MOVE_MASK
+
+    rcall MOVE_UP_ROW
+    rcall MOVE_LEFT_SLOT
+    ret
+
+; T - TODAS EN EL CUADRANTE Q6
+DRAW_ALL_A4:
+    ldi auto_mode, 1
+
+    ; Limpiar etapa vieja.
+    clr dato
+    rcall EEPROM_WRITE_STAGE
+
+    rcall PEN_UP
+
+    ; HOME -> Q6
+    rcall MOVE_RIGHT_SLOT
+    rcall MOVE_RIGHT_SLOT
+    rcall MOVE_DOWN_ROW
+
+T_START_TRIANGLE:
+    ldi dato, MV_R
+    ldi dur, 25
+    rcall MOVE_MASK
+
+    ldi dato, MV_D
+    ldi dur, 50
+    rcall MOVE_MASK
+
+    ldi next_stage, STAGE_AFTER_TRIANGLE
+    rcall DRAW_TRIANGLE_MINI
+
+T_TRIANGLE_RETURN_OUTER:
+    ldi dato, MV_U
+    ldi dur, 50
+    rcall MOVE_MASK
+
+    ldi dato, MV_L
+    ldi dur, 25
+    rcall MOVE_MASK
+
+    rcall HOME_SETTLE
+    jmp T_START_CIRCLE
+
+
+; RESET despues del triangulo mini.
+T_RESUME_AFTER_TRIANGLE:
+    ldi auto_mode, 1
+
+    ldi dato, MV_L
+    ldi dur, 69
+    rcall MOVE_MASK
+
+    jmp T_TRIANGLE_RETURN_OUTER
