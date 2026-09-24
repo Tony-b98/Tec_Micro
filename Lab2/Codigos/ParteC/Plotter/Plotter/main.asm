@@ -674,3 +674,221 @@ DRAW_PORYGON_BIG:
     ldi ZH, high(PATH_PORYGON<<1)
     rcall DRAW_PATH_BIG
     ret
+
+; Cubo 3D, figura opcional
+DRAW_CUBE_BIG:
+    rcall PEN_UP
+
+    ; HOME local -> A
+    ldi dato, MV_R
+    ldi dur, 120
+    rcall MOVE_MASK
+
+    rcall PEN_DOWN
+
+    ; A -> E
+    ldi dato, MV_DL
+    ldi dur, 120
+    rcall MOVE_MASK
+
+    ; E -> H
+    ldi dato, MV_D
+    ldi dur, 240
+    rcall MOVE_MASK
+
+    ; H -> D
+    ldi dato, MV_UR
+    ldi dur, 120
+    rcall MOVE_MASK
+
+    ; D -> H
+    ldi dato, MV_DL
+    ldi dur, 120
+    rcall MOVE_MASK
+
+    ; H -> G
+    ldi dato, MV_R
+    ldi dur, 240
+    rcall MOVE_MASK
+
+    ; G -> C
+    ldi dato, MV_UR
+    ldi dur, 120
+    rcall MOVE_MASK
+
+    ; C -> G
+    ldi dato, MV_DL
+    ldi dur, 120
+    rcall MOVE_MASK
+
+    ; G -> F
+    ldi dato, MV_U
+    ldi dur, 240
+    rcall MOVE_MASK
+
+    ; F -> B
+    ldi dato, MV_UR
+    ldi dur, 120
+    rcall MOVE_MASK
+
+    ; B -> F
+    ldi dato, MV_DL
+    ldi dur, 120
+    rcall MOVE_MASK
+
+    ; F -> E
+    ldi dato, MV_L
+    ldi dur, 240
+    rcall MOVE_MASK
+
+    ; E -> A
+    ldi dato, MV_UR
+    ldi dur, 120
+    rcall MOVE_MASK
+
+    ; A -> D
+    ldi dato, MV_D
+    ldi dur, 240
+    rcall MOVE_MASK
+
+    ; D -> C
+    ldi dato, MV_R
+    ldi dur, 240
+    rcall MOVE_MASK
+
+    ; C -> B
+    ldi dato, MV_U
+    ldi dur, 240
+    rcall MOVE_MASK
+
+    ; B -> A
+    ldi dato, MV_L
+    ldi dur, 240
+    rcall MOVE_MASK
+
+    ; Figura completa
+    rcall PEN_UP
+
+    ; A -> HOME local
+    ldi dato, MV_L
+    ldi dur, 120
+    rcall MOVE_MASK
+    ret
+
+; FIGURAS
+DRAW_TRIANGLE:
+    ldi ZL, low(PATH_TRIANGLE<<1)
+    ldi ZH, high(PATH_TRIANGLE<<1)
+    rcall DRAW_PATH
+    ret
+
+DRAW_CIRCLE:
+    ldi ZL, low(PATH_CIRCLE<<1)
+    ldi ZH, high(PATH_CIRCLE<<1)
+    rcall DRAW_PATH
+    ret
+
+DRAW_STAR:
+    ldi ZL, low(PATH_STAR<<1)
+    ldi ZH, high(PATH_STAR<<1)
+    rcall DRAW_PATH
+    ret
+
+DRAW_CUBE:
+    rcall PEN_UP
+
+    ldi dato, MV_R
+    ldi dur, 60
+    rcall MOVE_MASK
+	; El cubo se dibuja en un solo trazo, nunca levanta el lapiz
+
+    rcall PEN_DOWN
+
+    ; A -> E
+    ldi dato, MV_DL
+    ldi dur, 60
+    rcall MOVE_MASK
+
+    ; E -> H
+    ldi dato, MV_D
+    ldi dur, 120
+    rcall MOVE_MASK
+
+    ; H -> D
+    ldi dato, MV_UR
+    ldi dur, 60
+    rcall MOVE_MASK
+
+    ; D -> H 
+    ldi dato, MV_DL
+    ldi dur, 60
+    rcall MOVE_MASK
+
+    ; H -> G
+    ldi dato, MV_R
+    ldi dur, 120
+    rcall MOVE_MASK
+
+    ; G -> C
+    ldi dato, MV_UR
+    ldi dur, 60
+    rcall MOVE_MASK
+
+    ; C -> G 
+    ldi dato, MV_DL
+    ldi dur, 60
+    rcall MOVE_MASK
+
+    ; G -> F
+    ldi dato, MV_U
+    ldi dur, 120
+    rcall MOVE_MASK
+
+    ; F -> B
+    ldi dato, MV_UR
+    ldi dur, 60
+    rcall MOVE_MASK
+
+    ; B -> F 
+    ldi dato, MV_DL
+    ldi dur, 60
+    rcall MOVE_MASK
+
+    ; F -> E
+    ldi dato, MV_L
+    ldi dur, 120
+    rcall MOVE_MASK
+
+    ; E -> A  
+    ldi dato, MV_UR
+    ldi dur, 60
+    rcall MOVE_MASK
+
+    ; A -> D
+    ldi dato, MV_D
+    ldi dur, 120
+    rcall MOVE_MASK
+
+    ; D -> C
+    ldi dato, MV_R
+    ldi dur, 120
+    rcall MOVE_MASK
+
+    ; C -> B
+    ldi dato, MV_U
+    ldi dur, 120
+    rcall MOVE_MASK
+
+    ; B -> A
+    ldi dato, MV_L
+    ldi dur, 120
+    rcall MOVE_MASK
+
+    ;Luego de terminar recien llama a PEN_UP
+    rcall PEN_UP
+	
+    ; A -> regresa a Home (esquina supeior derecha)
+    ldi dato, MV_L
+    ldi dur, 60
+    rcall MOVE_MASK
+	ret
