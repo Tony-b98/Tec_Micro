@@ -394,3 +394,191 @@ UART_PUTS_LOOP:
 
 UART_PUTS_END:
     ret
+
+
+TIMER1_INIT:
+    clr temp
+    sts TCCR1A, temp
+    sts TCNT1H, temp
+    sts TCNT1L, temp
+
+    ldi temp, high(2499)
+    sts OCR1AH, temp
+    ldi temp, low(2499)
+    sts OCR1AL, temp
+
+    ldi temp, (1<<WGM12) | (1<<CS11) | (1<<CS10)
+    sts TCCR1B, temp
+
+    ldi temp, (1<<OCF1A)
+    out TIFR1, temp
+    ret
+
+WAIT_TICKS:
+    tst dur
+    breq WAIT_TICKS_END
+
+    clr temp
+    sts TCNT1H, temp
+    sts TCNT1L, temp
+
+    ldi temp, (1<<OCF1A)
+    out TIFR1, temp
+
+WAIT_TICKS_LOOP:
+WAIT_TICKS_FLAG:
+    in temp, TIFR1
+    sbrs temp, OCF1A
+    rjmp WAIT_TICKS_FLAG
+
+    ldi temp, (1<<OCF1A)
+    out TIFR1, temp
+
+    dec dur
+    brne WAIT_TICKS_LOOP
+
+WAIT_TICKS_END:
+    ret
+
+;MOVIMIENTO
+STOP_MOV:
+    cbi PORTD, PIN_ABAJO
+    cbi PORTD, PIN_ARRIBA
+    cbi PORTD, PIN_IZQ
+    cbi PORTD, PIN_DER
+    ret
+
+; dato = direccion / mascara
+MOVE_MASK:
+    rcall STOP_MOV
+
+    in temp, PORTD
+    andi temp, 0x0F
+    or temp, dato
+    out PORTD, temp
+
+    rcall WAIT_TICKS
+    rcall STOP_MOV
+    ret
+
+
+; MOVIMIENTOS DE SLOT A4
+MOVE_RIGHT_SLOT:
+    ldi dato, MV_R
+    ldi dur, SLOT_X_PART
+    rcall MOVE_MASK
+    ldi dato, MV_R
+    ldi dur, SLOT_X_PART
+    rcall MOVE_MASK
+    ldi dato, MV_R
+    ldi dur, SLOT_X_PART
+    rcall MOVE_MASK
+    ldi dato, MV_R
+    ldi dur, SLOT_X_PART
+    rcall MOVE_MASK
+    ret
+
+MOVE_LEFT_SLOT:
+    ldi dato, MV_L
+    ldi dur, SLOT_X_PART
+    rcall MOVE_MASK
+    ldi dato, MV_L
+    ldi dur, SLOT_X_PART
+    rcall MOVE_MASK
+    ldi dato, MV_L
+    ldi dur, SLOT_X_PART
+    rcall MOVE_MASK
+    ldi dato, MV_L
+    ldi dur, SLOT_X_PART
+    rcall MOVE_MASK
+    ret
+
+MOVE_DOWN_ROW:
+    ldi dato, MV_D
+    ldi dur, SLOT_Y_PART
+    rcall MOVE_MASK
+    ldi dato, MV_D
+    ldi dur, SLOT_Y_PART
+    rcall MOVE_MASK
+    ldi dato, MV_D
+    ldi dur, SLOT_Y_PART
+    rcall MOVE_MASK
+    ldi dato, MV_D
+    ldi dur, SLOT_Y_PART
+    rcall MOVE_MASK
+    ret
+
+MOVE_UP_ROW:
+    ldi dato, MV_U
+    ldi dur, SLOT_Y_PART
+    rcall MOVE_MASK
+    ldi dato, MV_U
+    ldi dur, SLOT_Y_PART
+    rcall MOVE_MASK
+    ldi dato, MV_U
+    ldi dur, SLOT_Y_PART
+    rcall MOVE_MASK
+    ldi dato, MV_U
+    ldi dur, SLOT_Y_PART
+    rcall MOVE_MASK
+    ret
+
+
+; LAPIZ
+PEN_DOWN:
+    cpi pen_state, PEN_IS_DOWN
+    breq PEN_DOWN_END
+
+    rcall STOP_MOV
+
+    cbi PORTD, PIN_SUBIR
+    cbi PORTD, PIN_BAJAR
+
+    ldi dur, 10             
+    rcall WAIT_TICKS
+
+    sbi PORTD, PIN_BAJAR
+    ldi dur, SOL_PULSE_TICKS
+    rcall WAIT_TICKS
+    cbi PORTD, PIN_BAJAR
+
+    ldi dur, SOL_SETTLE_TICKS
+    rcall WAIT_TICKS
+
+    ldi pen_state, PEN_IS_DOWN
+
+PEN_DOWN_END:
+    ret
+
+
+PEN_UP:
+    cpi pen_state, PEN_IS_UP
+    breq PEN_UP_END
+
+    rcall STOP_MOV
+
+    cbi PORTD, PIN_BAJAR
+    cbi PORTD, PIN_SUBIR
+
+    cpi auto_mode, 1
+    brne PEN_UP_NO_SAVE
+
+    mov dato, next_stage
+    rcall EEPROM_WRITE_STAGE
+
+PEN_UP_NO_SAVE:
+    ldi dur, 10              
+    rcall WAIT_TICKS
+
+    sbi PORTD, PIN_SUBIR
+    ldi dur, SOL_PULSE_TICKS
+    rcall WAIT_TICKS
+    cbi PORTD, PIN_SUBIR
+
+    ldi dur, SOL_SETTLE_TICKS
+    rcall WAIT_TICKS
+
+    ldi pen_state, PEN_IS_UP
+
+PEN_UP_END:
+    ret
