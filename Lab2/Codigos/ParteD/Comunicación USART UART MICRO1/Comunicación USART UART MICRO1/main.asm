@@ -132,3 +132,22 @@ USART_TX_WAIT:
     ; Transmitir
     sts UDR0, dato
     ret
+
+;Delay para evitar rebote
+DELAY_20MS:
+
+    ldi delay1, 100
+
+DELAY_20MS_1:
+
+    ldi delay2, 255
+
+DELAY_20MS_2:
+
+    dec delay2
+    brne DELAY_20MS_2
+
+    dec delay1
+    brne DELAY_20MS_1
+
+    ret
