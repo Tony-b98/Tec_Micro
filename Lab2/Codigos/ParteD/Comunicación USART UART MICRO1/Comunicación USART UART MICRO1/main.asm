@@ -94,16 +94,41 @@ MAIN:
 
     ; Actualizar valor definitivo
     mov anterior, dato
-
-    ; Enviar valor 0...7 por USART
-    ; Los bits transmitidos quedan:
-    ; 00000000 -> 0
-    ; 00000001 -> 1
-    ; 00000010 -> 2
-    ; ...
-    ; 00000111 -> 7
-   
     rcall USART_TX
+	rjmp MAIN
 
+; Inicializacion USART
+USART_INIT:
 
-    rjmp MAIN
+    ; Baud rate = 9600
+    ldi temp, high(103)
+    sts UBRR0H, temp
+
+    ldi temp, low(103)
+    sts UBRR0L, temp
+    ; U2X0 = 0
+    ldi temp, 0x00
+    sts UCSR0A, temp
+
+    ; Habilitar solamente transmisor
+    ldi temp, (1<<TXEN0)
+    sts UCSR0B, temp
+
+    ; 8 bits, sin paridad, 1 stop
+    ldi temp, (1<<UCSZ01) | (1<<UCSZ00)
+    sts UCSR0C, temp
+    ret
+
+; USART_TX
+; Entrada: dato = byte a transmitir
+USART_TX:
+
+USART_TX_WAIT:
+    ; Leer estado USART
+    lds temp, UCSR0A
+    ; Esperar buffer disponible
+    sbrs temp, UDRE0
+    rjmp USART_TX_WAIT
+    ; Transmitir
+    sts UDR0, dato
+    ret
