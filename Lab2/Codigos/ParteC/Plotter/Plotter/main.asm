@@ -2278,3 +2278,15 @@ PATH_PORYGON:
     .db MV_U, 80
 
     .db OP_END, 0
+
+; Menu USART
+MSG_WELCOME:
+    .db 13,10," Dibujos PLOTTER ",13,10,0
+MSG_MENU:
+    .db "1 Triangulo  2 Circulo  3 Pentagrama",13,10
+    .db "4 Cubo 3D  P Porygon  T Todas ",13,10,0,0
+MSG_ERROR:
+    .db "Comando invalido",13,10,0,0
+MSG_DONE:
+    .db "Dibujo finalizado",13,10,0
+
