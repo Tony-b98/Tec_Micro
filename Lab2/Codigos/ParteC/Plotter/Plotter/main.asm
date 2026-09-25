@@ -1498,3 +1498,341 @@ T_RESUME_AFTER_PORYGON:
     rcall MOVE_MASK
 
     jmp T_PORYGON_RETURN_OUTER
+	
+; FINAL DE T
+    rcall MOVE_LEFT_SLOT
+    rcall MOVE_LEFT_SLOT
+    rcall MOVE_UP_ROW
+    rcall STOP_MOV
+
+    clr dato
+    rcall EEPROM_WRITE_STAGE
+
+    clr auto_mode
+    clr next_stage
+    clr resume_stage
+
+    jmp DRAW_FINISHED
+
+; Pausa corta al llegar a HOME.
+; Sirve para que el mecanismo se estabilice antes de ir a la
+; siguiente posicion.
+HOME_SETTLE:
+    ; Pausa mecanica entre figuras.
+    ; No cambia el estado del lapiz.
+    rcall STOP_MOV
+    ldi dur, 50          ; 500 ms
+    rcall WAIT_TICKS
+    ret
+
+; 1 - TRIANGULO
+; Triangulo isosceles 
+PATH_TRIANGLE:
+    .db OP_PEN_UP, 0
+
+    ; Ir al vertice superior
+    .db MV_R, 110
+
+    .db OP_PEN_DOWN, 0
+
+    ; Vertice superior -> inferior derecha
+    .db MV_DR, 110
+
+    ; Base hacia la izquierda (220)
+    .db MV_L, 110
+    .db MV_L, 110
+
+    ; Inferior izquierda -> vertice superior
+    .db MV_UR, 110
+
+    .db OP_PEN_UP, 0
+
+    ; Volver al HOME local
+    .db MV_L, 110
+
+    .db OP_END, 0
+
+; 2 - CIRCULO
+PATH_CIRCLE:
+    .db OP_PEN_UP, 0
+    .db MV_R, 120
+
+    .db OP_PEN_DOWN, 0
+
+    ; CUADRANTE 1
+    ; Superior -> Derecha
+    .db MV_R, 15
+    .db MV_R, 15
+    .db MV_R, 10
+    .db MV_DR, 5
+    .db MV_R, 10
+    .db MV_DR, 10
+    .db MV_R, 10
+    .db MV_DR, 15
+    .db MV_DR, 15
+    .db MV_D, 10
+    .db MV_DR, 10
+    .db MV_D, 10
+    .db MV_DR, 5
+    .db MV_D, 10
+    .db MV_D, 15
+    .db MV_D, 15
+
+    ; CUADRANTE 2
+    ; Derecha -> Inferior
+    .db MV_D, 15
+    .db MV_D, 15
+    .db MV_D, 10
+    .db MV_DL, 5
+    .db MV_D, 10
+    .db MV_DL, 10
+    .db MV_D, 10
+    .db MV_DL, 15
+    .db MV_DL, 15
+    .db MV_L, 10
+    .db MV_DL, 10
+    .db MV_L, 10
+    .db MV_DL, 5
+    .db MV_L, 10
+    .db MV_L, 15
+    .db MV_L, 15
+
+    ; CUADRANTE 3
+    ; Inferior -> Izquierda
+    .db MV_L, 15
+    .db MV_L, 15
+    .db MV_L, 10
+    .db MV_UL, 5
+    .db MV_L, 10
+    .db MV_UL, 10
+    .db MV_L, 10
+    .db MV_UL, 15
+    .db MV_UL, 15
+    .db MV_U, 10
+    .db MV_UL, 10
+    .db MV_U, 10
+    .db MV_UL, 5
+    .db MV_U, 10
+    .db MV_U, 15
+    .db MV_U, 15
+
+    ; CUADRANTE 4
+    ; Izquierda -> Superior
+    .db MV_U, 15
+    .db MV_U, 15
+    .db MV_U, 10
+    .db MV_UR, 5
+    .db MV_U, 10
+    .db MV_UR, 10
+    .db MV_U, 10
+    .db MV_UR, 15
+    .db MV_UR, 15
+    .db MV_R, 10
+    .db MV_UR, 10
+    .db MV_R, 10
+    .db MV_UR, 5
+    .db MV_R, 10
+    .db MV_R, 15
+    .db MV_R, 15
+
+    ; Fin del circulo
+    .db OP_PEN_UP, 0
+
+    ; Volver a HOME
+    .db MV_L, 120
+
+    .db OP_END, 0
+
+; 3 - PENTAGRAMA 
+PATH_STAR:
+
+    .db OP_PEN_UP, 0
+    .db MV_R, 120
+
+    .db OP_PEN_DOWN, 0
+
+    ; Punta superior -> punta inferior derecha
+    .db MV_DR, 5
+    .db MV_D, 8
+    .db MV_DR, 5
+    .db MV_D, 8
+    .db MV_DR, 5
+    .db MV_D, 10
+
+    .db MV_DR, 5
+    .db MV_D, 8
+    .db MV_DR, 5
+    .db MV_D, 8
+    .db MV_DR, 5
+    .db MV_D, 10
+
+    .db MV_DR, 5
+    .db MV_D, 8
+    .db MV_DR, 5
+    .db MV_D, 8
+    .db MV_DR, 5
+    .db MV_D, 10
+
+    .db MV_DR, 5
+    .db MV_D, 8
+    .db MV_DR, 5
+    .db MV_D, 8
+    .db MV_DR, 5
+    .db MV_D, 10
+
+    .db MV_DR, 5
+    .db MV_D, 8
+    .db MV_DR, 5
+    .db MV_D, 8
+    .db MV_DR, 5
+    .db MV_D, 10
+
+    .db MV_D, 5
+
+    ; Punta inferior derecha -> punta izquierda
+    .db MV_UL, 5
+    .db MV_UL, 5
+    .db MV_UL, 5
+    .db MV_L, 5
+
+    .db MV_UL, 5
+    .db MV_UL, 5
+    .db MV_UL, 5
+    .db MV_L, 5
+
+    .db MV_UL, 5
+    .db MV_UL, 5
+    .db MV_UL, 5
+    .db MV_L, 5
+
+    .db MV_UL, 5
+    .db MV_UL, 5
+    .db MV_UL, 5
+    .db MV_L, 5
+
+    .db MV_UL, 5
+    .db MV_UL, 5
+    .db MV_UL, 5
+    .db MV_L, 5
+
+    .db MV_UL, 5
+    .db MV_UL, 5
+    .db MV_UL, 5
+    .db MV_L, 5
+
+    .db MV_UL, 5
+    .db MV_UL, 5
+    .db MV_UL, 5
+    .db MV_L, 5
+
+    .db MV_UL, 5
+    .db MV_UL, 5
+    .db MV_UL, 5
+    .db MV_L, 5
+
+    .db MV_UL, 5
+    .db MV_UL, 5
+    .db MV_UL, 5
+    .db MV_L, 5
+
+    .db MV_UL, 5
+    .db MV_UL, 5
+
+    ; Punta izquierda -> punta derecha
+    .db MV_R, 90
+    .db MV_R, 90
+    .db MV_R, 50
+
+    ; Punta derecha -> punta inferior izquierda
+    .db MV_DL, 5
+    .db MV_DL, 5
+    .db MV_DL, 5
+    .db MV_L, 5
+
+    .db MV_DL, 5
+    .db MV_DL, 5
+    .db MV_DL, 5
+    .db MV_L, 5
+
+    .db MV_DL, 5
+    .db MV_DL, 5
+    .db MV_DL, 5
+    .db MV_L, 5
+
+    .db MV_DL, 5
+    .db MV_DL, 5
+    .db MV_DL, 5
+    .db MV_L, 5
+
+    .db MV_DL, 5
+    .db MV_DL, 5
+    .db MV_DL, 5
+    .db MV_L, 5
+
+    .db MV_DL, 5
+    .db MV_DL, 5
+    .db MV_DL, 5
+    .db MV_L, 5
+
+    .db MV_DL, 5
+    .db MV_DL, 5
+    .db MV_DL, 5
+    .db MV_L, 5
+
+    .db MV_DL, 5
+    .db MV_DL, 5
+    .db MV_DL, 5
+    .db MV_L, 5
+
+    .db MV_DL, 5
+    .db MV_DL, 5
+    .db MV_DL, 5
+    .db MV_L, 5
+
+    .db MV_DL, 5
+    .db MV_DL, 5
+
+    ; Punta inferior izquierda -> punta superior
+    .db MV_UR, 5
+    .db MV_U, 8
+    .db MV_UR, 5
+    .db MV_U, 8
+    .db MV_UR, 5
+    .db MV_U, 10
+
+    .db MV_UR, 5
+    .db MV_U, 8
+    .db MV_UR, 5
+    .db MV_U, 8
+    .db MV_UR, 5
+    .db MV_U, 10
+
+    .db MV_UR, 5
+    .db MV_U, 8
+    .db MV_UR, 5
+    .db MV_U, 8
+    .db MV_UR, 5
+    .db MV_U, 10
+
+    .db MV_UR, 5
+    .db MV_U, 8
+    .db MV_UR, 5
+    .db MV_U, 8
+    .db MV_UR, 5
+    .db MV_U, 10
+
+    .db MV_UR, 5
+    .db MV_U, 8
+    .db MV_UR, 5
+    .db MV_U, 8
+    .db MV_UR, 5
+    .db MV_U, 10
+
+    .db MV_U, 5
+
+    ; El pentagrama termino nuevamente en A
+    .db OP_PEN_UP, 0
+
+    .db MV_L, 120
+
+    .db OP_END, 0
