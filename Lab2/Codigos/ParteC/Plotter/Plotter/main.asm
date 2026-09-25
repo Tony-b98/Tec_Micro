@@ -1836,3 +1836,115 @@ PATH_STAR:
     .db MV_L, 120
 
     .db OP_END, 0
+
+PATH_TRIANGLE_T:
+
+    .db OP_PEN_UP, 0
+
+   ; Ir al vertice superior
+    .db MV_R, 69
+	.db OP_PEN_DOWN, 0
+
+    ; Vertice superior -> inferior derecha
+    .db MV_DR, 69
+
+    ; Base hacia la izquierda (220)
+    .db MV_L, 69
+    .db MV_L, 69
+
+    ; Inferior izquierda -> vertice superior
+    .db MV_UR, 69
+
+    .db OP_PEN_UP, 0
+
+    ; Volver al HOME local
+    .db MV_L, 69
+
+    .db OP_END, 0
+
+; PATH_CIRCLE_T 
+PATH_CIRCLE_T:
+
+    ; HOME -> punto superior del circulo
+    .db OP_PEN_UP, 0
+    .db MV_R, 75
+	.db OP_PEN_DOWN, 0
+	
+	; Superior -> Derecha
+    .db MV_R, 9
+    .db MV_R, 9
+    .db MV_R, 6
+    .db MV_DR, 3
+    .db MV_R, 6
+    .db MV_DR, 6
+    .db MV_R, 6
+    .db MV_DR, 9
+    .db MV_DR, 9
+    .db MV_D, 6
+    .db MV_DR, 6
+    .db MV_D, 6
+    .db MV_DR, 3
+    .db MV_D, 6
+    .db MV_D, 9
+    .db MV_D, 9
+
+	; Derecha -> Inferior
+    .db MV_D, 9
+    .db MV_D, 9
+    .db MV_D, 6
+    .db MV_DL, 3
+    .db MV_D, 6
+    .db MV_DL, 6
+    .db MV_D, 6
+    .db MV_DL, 9
+    .db MV_DL, 9
+    .db MV_L, 6
+    .db MV_DL, 6
+    .db MV_L, 6
+    .db MV_DL, 3
+    .db MV_L, 6
+    .db MV_L, 9
+    .db MV_L, 9
+
+	; Inferior -> Izquierda
+    .db MV_L, 9
+    .db MV_L, 9
+    .db MV_L, 6
+    .db MV_UL, 3
+    .db MV_L, 6
+    .db MV_UL, 6
+    .db MV_L, 6
+    .db MV_UL, 9
+    .db MV_UL, 9
+    .db MV_U, 6
+    .db MV_UL, 6
+    .db MV_U, 6
+    .db MV_UL, 3
+    .db MV_U, 6
+    .db MV_U, 9
+    .db MV_U, 9
+
+	; Izquierda -> Superior
+    .db MV_U, 9
+    .db MV_U, 9
+    .db MV_U, 6
+    .db MV_UR, 3
+    .db MV_U, 6
+    .db MV_UR, 6
+    .db MV_U, 6
+    .db MV_UR, 9
+    .db MV_UR, 9
+    .db MV_R, 6
+    .db MV_UR, 6
+    .db MV_R, 6
+    .db MV_UR, 3
+    .db MV_R, 6
+    .db MV_R, 9
+    .db MV_R, 9
+
+	; Fin del circulo
+    .db OP_PEN_UP, 0
+	
+    ; Volver a HOME
+    .db MV_L, 75
+	.db OP_END, 0
