@@ -1948,3 +1948,195 @@ PATH_CIRCLE_T:
     ; Volver a HOME
     .db MV_L, 75
 	.db OP_END, 0
+
+;Pentagrama
+PATH_STAR_T:
+
+    .db OP_PEN_UP, 0
+    .db MV_R, 98
+    .db OP_PEN_DOWN, 0
+
+    ; A -> E
+    .db MV_DR, 4
+    .db MV_D, 7
+    .db MV_DR, 4
+    .db MV_D, 7
+    .db MV_DR, 4
+    .db MV_D, 8
+
+    .db MV_DR, 4
+    .db MV_D, 7
+    .db MV_DR, 4
+    .db MV_D, 7
+    .db MV_DR, 4
+    .db MV_D, 8
+
+    .db MV_DR, 4
+    .db MV_D, 7
+    .db MV_DR, 4
+    .db MV_D, 7
+    .db MV_DR, 4
+    .db MV_D, 8
+
+    .db MV_DR, 4
+    .db MV_D, 7
+    .db MV_DR, 4
+    .db MV_D, 7
+    .db MV_DR, 4
+    .db MV_D, 8
+
+    .db MV_DR, 4
+    .db MV_D, 7
+    .db MV_DR, 4
+    .db MV_D, 7
+    .db MV_DR, 4
+    .db MV_D, 8
+
+    .db MV_D, 4
+
+    ; E -> I
+    .db MV_UL, 4
+    .db MV_UL, 4
+    .db MV_UL, 4
+    .db MV_L, 4
+
+    .db MV_UL, 4
+    .db MV_UL, 4
+    .db MV_UL, 4
+    .db MV_L, 4
+
+    .db MV_UL, 4
+    .db MV_UL, 4
+    .db MV_UL, 4
+    .db MV_L, 4
+
+    .db MV_UL, 4
+    .db MV_UL, 4
+    .db MV_UL, 4
+    .db MV_L, 4
+
+    .db MV_UL, 4
+    .db MV_UL, 4
+    .db MV_UL, 4
+    .db MV_L, 4
+
+    .db MV_UL, 4
+    .db MV_UL, 4
+    .db MV_UL, 4
+    .db MV_L, 4
+
+    .db MV_UL, 4
+    .db MV_UL, 4
+    .db MV_UL, 4
+    .db MV_L, 4
+
+    .db MV_UL, 4
+    .db MV_UL, 4
+    .db MV_UL, 4
+    .db MV_L, 4
+
+    .db MV_UL, 4
+    .db MV_UL, 4
+    .db MV_UL, 4
+    .db MV_L, 4
+
+    .db MV_UL, 4
+    .db MV_UL, 4
+
+    ; I -> C
+    .db MV_R, 73
+    .db MV_R, 73
+    .db MV_R, 41
+
+    ; C -> G
+    .db MV_DL, 4
+    .db MV_DL, 4
+    .db MV_DL, 4
+    .db MV_L, 4
+
+    .db MV_DL, 4
+    .db MV_DL, 4
+    .db MV_DL, 4
+    .db MV_L, 4
+
+    .db MV_DL, 4
+    .db MV_DL, 4
+    .db MV_DL, 4
+    .db MV_L, 4
+
+    .db MV_DL, 4
+    .db MV_DL, 4
+    .db MV_DL, 4
+    .db MV_L, 4
+
+    .db MV_DL, 4
+    .db MV_DL, 4
+    .db MV_DL, 4
+    .db MV_L, 4
+
+    .db MV_DL, 4
+    .db MV_DL, 4
+    .db MV_DL, 4
+    .db MV_L, 4
+
+    .db MV_DL, 4
+    .db MV_DL, 4
+    .db MV_DL, 4
+    .db MV_L, 4
+
+    .db MV_DL, 4
+    .db MV_DL, 4
+    .db MV_DL, 4
+    .db MV_L, 4
+
+    .db MV_DL, 4
+    .db MV_DL, 4
+    .db MV_DL, 4
+    .db MV_L, 4
+
+    .db MV_DL, 4
+    .db MV_DL, 4
+
+    ; G -> A
+    .db MV_UR, 4
+    .db MV_U, 7
+    .db MV_UR, 4
+    .db MV_U, 7
+    .db MV_UR, 4
+    .db MV_U, 8
+
+    .db MV_UR, 4
+    .db MV_U, 7
+    .db MV_UR, 4
+    .db MV_U, 7
+    .db MV_UR, 4
+    .db MV_U, 8
+
+    .db MV_UR, 4
+    .db MV_U, 7
+    .db MV_UR, 4
+    .db MV_U, 7
+    .db MV_UR, 4
+    .db MV_U, 8
+
+    .db MV_UR, 4
+    .db MV_U, 7
+    .db MV_UR, 4
+    .db MV_U, 7
+    .db MV_UR, 4
+    .db MV_U, 8
+
+    .db MV_UR, 4
+    .db MV_U, 7
+    .db MV_UR, 4
+    .db MV_U, 7
+    .db MV_UR, 4
+    .db MV_U, 8
+
+    .db MV_U, 4
+
+	; Fin de pentagrama
+    .db OP_PEN_UP, 0
+	; Regresa Home
+    .db MV_L, 98
+	.db OP_END, 0
