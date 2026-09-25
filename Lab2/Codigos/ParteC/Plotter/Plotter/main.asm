@@ -1331,3 +1331,170 @@ T_RESUME_AFTER_TRIANGLE:
     rcall MOVE_MASK
 
     jmp T_TRIANGLE_RETURN_OUTER
+
+T_START_CIRCLE:
+    ldi dato, MV_R
+    ldi dur, 240
+    rcall MOVE_MASK
+
+    ldi dato, MV_D
+    ldi dur, 30
+    rcall MOVE_MASK
+
+    ldi next_stage, STAGE_AFTER_CIRCLE
+    rcall DRAW_CIRCLE_MINI
+
+T_CIRCLE_RETURN_OUTER:
+    ldi dato, MV_U
+    ldi dur, 30
+    rcall MOVE_MASK
+
+    ldi dato, MV_L
+    ldi dur, 240
+    rcall MOVE_MASK
+
+    rcall HOME_SETTLE
+    jmp T_START_STAR
+
+
+; RESET despues del circulo mini.
+T_RESUME_AFTER_CIRCLE:
+    ldi auto_mode, 1
+
+    ldi dato, MV_L
+    ldi dur, 75
+    rcall MOVE_MASK
+
+    jmp T_CIRCLE_RETURN_OUTER
+
+
+T_START_STAR:
+    ldi dato, MV_R
+    ldi dur, 230
+    rcall MOVE_MASK
+    ldi dato, MV_R
+    ldi dur, 225
+    rcall MOVE_MASK
+
+    ldi dato, MV_D
+    ldi dur, 40
+    rcall MOVE_MASK
+
+    ldi next_stage, STAGE_AFTER_STAR
+    rcall DRAW_STAR_MINI
+
+T_STAR_RETURN_OUTER:
+    ldi dato, MV_U
+    ldi dur, 40
+    rcall MOVE_MASK
+
+    ldi dato, MV_L
+    ldi dur, 225
+    rcall MOVE_MASK
+    ldi dato, MV_L
+    ldi dur, 230
+    rcall MOVE_MASK
+
+    rcall HOME_SETTLE
+    jmp T_START_CUBE
+
+
+; RESET despues del pentagrama mini.
+T_RESUME_AFTER_STAR:
+    ldi auto_mode, 1
+
+    ldi dato, MV_L
+    ldi dur, 98
+    rcall MOVE_MASK
+
+    jmp T_STAR_RETURN_OUTER
+
+
+T_START_CUBE:
+    ldi dato, MV_R
+    ldi dur, 130
+    rcall MOVE_MASK
+
+    ldi dato, MV_D
+    ldi dur, 165
+    rcall MOVE_MASK
+    ldi dato, MV_D
+    ldi dur, 165
+    rcall MOVE_MASK
+
+    ldi next_stage, STAGE_AFTER_CUBE
+    rcall DRAW_CUBE_MINI
+
+T_CUBE_RETURN_OUTER:
+    ldi dato, MV_U
+    ldi dur, 165
+    rcall MOVE_MASK
+    ldi dato, MV_U
+    ldi dur, 165
+    rcall MOVE_MASK
+
+    ldi dato, MV_L
+    ldi dur, 130
+    rcall MOVE_MASK
+
+    rcall HOME_SETTLE
+    jmp T_START_PORYGON
+
+
+; RESET despues del cubo mini.
+T_RESUME_AFTER_CUBE:
+    ldi auto_mode, 1
+
+    ldi dato, MV_L
+    ldi dur, 38
+    rcall MOVE_MASK
+
+    jmp T_CUBE_RETURN_OUTER
+
+
+T_START_PORYGON:
+    ldi dato, MV_R
+    ldi dur, 185
+    rcall MOVE_MASK
+    ldi dato, MV_R
+    ldi dur, 185
+    rcall MOVE_MASK
+
+    ldi dato, MV_D
+    ldi dur, 160
+    rcall MOVE_MASK
+    ldi dato, MV_D
+    ldi dur, 160
+    rcall MOVE_MASK
+
+    ldi next_stage, STAGE_AFTER_PORYGON
+    rcall DRAW_PORYGON_MINI
+
+T_PORYGON_RETURN_OUTER:
+    ldi dato, MV_U
+    ldi dur, 160
+    rcall MOVE_MASK
+    ldi dato, MV_U
+    ldi dur, 160
+    rcall MOVE_MASK
+
+    ldi dato, MV_L
+    ldi dur, 185
+    rcall MOVE_MASK
+    ldi dato, MV_L
+    ldi dur, 185
+    rcall MOVE_MASK
+
+    rcall HOME_SETTLE
+    jmp T_FINISH
+
+
+; RESET despues del Porygon mini.
+T_RESUME_AFTER_PORYGON:
+    ldi auto_mode, 1
+
+    ldi dato, MV_U
+    ldi dur, 50
+    rcall MOVE_MASK
+
+    jmp T_PORYGON_RETURN_OUTER
