@@ -2140,3 +2140,141 @@ PATH_STAR_T:
 	; Regresa Home
     .db MV_L, 98
 	.db OP_END, 0
+	
+PATH_PORYGON_T:
+
+    ; HOME local 
+    .db OP_PEN_UP, 0
+    .db MV_D, 50
+
+    ; Desde aqui se dibuja TODO con el lapiz abajo.
+    .db OP_PEN_DOWN, 0
+
+    .db MV_DR, 28
+    .db MV_DR, 13
+    .db MV_D, 25
+    .db MV_DR, 13
+    .db MV_DR, 13
+    .db MV_U, 38
+    .db MV_D, 38
+    .db MV_D, 25
+    .db MV_L, 25
+    .db MV_UL, 19
+    .db MV_UR, 25
+    .db MV_DR, 19
+    .db MV_R, 38
+    .db MV_D, 25
+    .db MV_R, 25
+    .db MV_UR, 19
+    .db MV_UL, 25
+    .db MV_DL, 19
+    .db MV_UR, 13
+    .db MV_U, 25
+    .db MV_UR, 38
+    .db MV_D, 38
+    .db MV_DL, 19
+    .db MV_UL, 19
+    .db MV_UR, 38
+    .db MV_DL, 19
+    .db MV_DL, 19
+    .db MV_L, 25
+    .db MV_L, 25
+    .db MV_U, 25
+    .db MV_DR, 25
+    .db MV_UL, 25
+    .db MV_L, 38
+    .db MV_R, 38
+    .db MV_UR, 13
+    .db MV_U, 31
+    .db MV_DL, 13
+    .db MV_D, 9
+    .db MV_L, 9
+    .db MV_U, 9
+    .db MV_R, 9
+    .db MV_UR, 13
+    .db MV_UL, 13
+    .db MV_L, 38
+    .db MV_D, 56
+    .db MV_UL, 22
+    .db MV_UL, 6
+    .db MV_UR, 28
+    .db MV_DL, 28
+
+    ; Figura completa: recien ahora levantar el lapiz.
+    .db OP_PEN_UP, 0
+
+    .db MV_U, 50
+
+    .db OP_END, 0
+
+; P - PORYGON
+; Se usan varias figuras cerradas y lineas internas independientes.
+; Cada bloque vuelve al origen antes de comenzar el siguiente.
+
+PATH_PORYGON:
+
+    ; HOME local 
+    .db OP_PEN_UP, 0
+    .db MV_D, 80
+
+    ; Desde aqui se dibuja TODO con el lapiz abajo.
+    .db OP_PEN_DOWN, 0
+
+    .db MV_DR, 45
+    .db MV_DR, 20
+    .db MV_D, 40
+    .db MV_DR, 20
+    .db MV_DR, 20
+    .db MV_U, 60
+    .db MV_D, 60
+    .db MV_D, 40
+    .db MV_L, 40
+    .db MV_UL, 30
+    .db MV_UR, 40
+    .db MV_DR, 30
+    .db MV_R, 60
+    .db MV_D, 40
+    .db MV_R, 40
+    .db MV_UR, 30
+    .db MV_UL, 40
+    .db MV_DL, 30
+    .db MV_UR, 20
+    .db MV_U, 40
+    .db MV_UR, 60
+    .db MV_D, 60
+    .db MV_DL, 30
+    .db MV_UL, 30
+    .db MV_UR, 60
+    .db MV_DL, 30
+    ; 27) I -> H
+    .db MV_DL, 30
+    .db MV_L, 40
+    .db MV_L, 40
+    .db MV_U, 40
+    .db MV_DR, 40
+    .db MV_UL, 40
+    .db MV_L, 60
+    .db MV_R, 60
+    .db MV_UR, 20
+    .db MV_U, 50
+    .db MV_DL, 20
+    .db MV_D, 15
+    .db MV_L, 15
+    .db MV_U, 15
+    .db MV_R, 15
+    .db MV_UR, 20
+    .db MV_UL, 20
+    .db MV_L, 60
+    .db MV_D, 90
+    .db MV_UL, 35
+    .db MV_UL, 10
+    .db MV_UR, 45
+    .db MV_DL, 45
+
+    ; Figura completa: recien ahora levantar el lapiz.
+    .db OP_PEN_UP, 0
+
+    ; A -> HOME local
+    .db MV_U, 80
+
+    .db OP_END, 0
