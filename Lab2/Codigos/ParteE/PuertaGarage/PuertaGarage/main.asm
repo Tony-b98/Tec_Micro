@@ -90,6 +90,7 @@ LOOP:
         rcall LEER_ENTRADAS
         rcall LEER_OBSTACULO
         rcall MAQUINA_ESTADOS
+		rcall ALARMA_TICK
         rjmp  LOOP
 
 ; ENTRADAS
@@ -121,6 +122,36 @@ LO_IDLE:
         ldi   temp, 1
         mov   obst_ant, temp
 LO_FIN:
+        ret
+
+; Buzzer para movimiento
+ALARMA_TICK:
+        cpi   estado, ST_ABRIENDO
+        breq  AT_SONAR
+        cpi   estado, ST_CERRANDO
+        breq  AT_SONAR
+        cbi   PORTB, PIN_ALARMA
+        ret
+AT_SONAR:
+        sbi   PORTB, PIN_ALARMA
+        rcall DELAY_TONO
+        cbi   PORTB, PIN_ALARMA
+        rcall DELAY_TONO
+        ret
+
+DELAY_TONO:
+        push  temp
+        push  temp2
+        ldi   temp2, 40
+DT_OUT:
+        ldi   temp, 50
+DT_IN:
+        dec   temp
+        brne  DT_IN
+        dec   temp2
+        brne  DT_OUT
+        pop   temp2
+        pop   temp
         ret
 
 ; MÁQUINA DE ESTADOS
@@ -334,7 +365,7 @@ SALIDAS_CERRADA:
 SALIDAS_ABRIENDO:
         ldi   temp, (1<<PIN_LED_ABRIENDO)
         out   PORTC, temp
-        ldi   temp, (1<<PIN_OBST)|(1<<PIN_MOT_ABRIR)|(1<<PIN_ALARMA)
+        ldi   temp, (1<<PIN_OBST)|(1<<PIN_MOT_ABRIR)
         out   PORTB, temp
         ret
 
@@ -348,7 +379,7 @@ SALIDAS_ABIERTA:
 SALIDAS_CERRANDO:
         ldi   temp, (1<<PIN_LED_CERRANDO)
         out   PORTC, temp
-        ldi   temp, (1<<PIN_OBST)|(1<<PIN_MOT_CERRAR)|(1<<PIN_ALARMA)
+        ldi   temp, (1<<PIN_OBST)|(1<<PIN_MOT_CERRAR)
         out   PORTB, temp
         ret
 
