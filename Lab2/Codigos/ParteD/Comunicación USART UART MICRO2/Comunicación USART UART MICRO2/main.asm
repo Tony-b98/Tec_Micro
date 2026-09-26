@@ -106,3 +106,38 @@ LED_6:
 LED_7:
     sbi PORTC, 1
     rjmp MAIN
+
+; APAGAR TODOS LOS LEDs
+APAGAR_LEDS:
+
+    clr temp
+
+    out PORTB, temp
+    out PORTC, temp
+
+    ret
+
+; INICIALIZACION USART
+USART_INIT:
+
+    ldi temp, high(103)
+    sts UBRR0H, temp
+
+    ldi temp, low(103)
+    sts UBRR0L, temp
+
+    ; Velocidad normal
+    clr temp
+    sts UCSR0A, temp
+
+    ; Habilitar solamente receptor USART
+    ldi temp, (1<<RXEN0)
+    sts UCSR0B, temp
+
+    ; 8 bits
+    ; sin paridad
+    ; 1 bit de stop
+    ldi temp, (1<<UCSZ01) | (1<<UCSZ00)
+    sts UCSR0C, temp
+
+    ret
