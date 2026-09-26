@@ -76,7 +76,7 @@ MAIN:
     ; 111 = 7
     andi dato, 0x07
 
-    ; Comprobar si el valor cambio
+    ; Comprobar si el valor cambió
     cp dato, anterior
 
     breq MAIN
@@ -133,7 +133,7 @@ USART_TX_WAIT:
     sts UDR0, dato
     ret
 
-;Delay para evitar rebote
+; Delay para evitar rebote
 DELAY_20MS:
 
     ldi delay1, 100
