@@ -2,8 +2,8 @@
 ; Definición de pines de entrada 
 .equ BTN_ABRIR    = 2
 .equ BTN_CERRAR   = 3
-.equ SENS_S1      = 4 ; sensor de posición S1
-.equ SENS_S2      = 5 ;sensor de posición S2
+.equ SENS_S1      = 4     ; sensor de posición S1
+.equ SENS_S2      = 5     ;sensor de posición S2
 
 ; Definición de pines de salida 
 .equ PIN_OBST       = 0 
@@ -40,7 +40,7 @@
 
 .org 0x0034
 RESET:
-        ;Inicializo SP
+        ; Inicializo SP
         ldi   temp, LOW(RAMEND)
         out   SPL, temp
         ldi   temp, HIGH(RAMEND)
