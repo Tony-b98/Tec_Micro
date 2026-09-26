@@ -322,3 +322,73 @@ ME_DE_A_CERRANDO:
 ; Fin de la máquina de estados
 ME_FIN:
         ret
+
+; Salidas
+SALIDAS_CERRADA:
+        ldi   temp, (1<<PIN_LED_S2)
+        out   PORTC, temp
+        ldi   temp, (1<<PIN_OBST)
+        out   PORTB, temp
+        ret
+
+SALIDAS_ABRIENDO:
+        ldi   temp, (1<<PIN_LED_ABRIENDO)
+        out   PORTC, temp
+        ldi   temp, (1<<PIN_OBST)|(1<<PIN_MOT_ABRIR)|(1<<PIN_ALARMA)
+        out   PORTB, temp
+        ret
+
+SALIDAS_ABIERTA:
+        ldi   temp, (1<<PIN_LED_S1)
+        out   PORTC, temp
+        ldi   temp, (1<<PIN_OBST)
+        out   PORTB, temp
+        ret
+
+SALIDAS_CERRANDO:
+        ldi   temp, (1<<PIN_LED_CERRANDO)
+        out   PORTC, temp
+        ldi   temp, (1<<PIN_OBST)|(1<<PIN_MOT_CERRAR)|(1<<PIN_ALARMA)
+        out   PORTB, temp
+        ret
+
+SALIDAS_DETENIDA:
+        clr   temp
+        out   PORTC, temp
+        ldi   temp, (1<<PIN_OBST)
+        out   PORTB, temp
+        ret
+
+ENVIAR_STRING:
+        lpm   temp, Z+
+        tst   temp
+        breq  ENVIAR_STRING_FIN
+        rcall ENVIAR_BYTE
+        rjmp  ENVIAR_STRING
+ENVIAR_STRING_FIN:
+        ret
+
+ENVIAR_BYTE:
+        push  temp2
+ENVIAR_BYTE_ESPERA:
+        lds   temp2, UCSR0A
+        sbrs  temp2, UDRE0
+        rjmp  ENVIAR_BYTE_ESPERA
+        sts   UDR0, temp
+        pop   temp2
+        ret
+
+; Mensajes de visualizacion de accion realizada
+MSG_CERRADA:
+        .db   "Puerta cerrada", 13, 10, 0
+MSG_ABRIENDO:
+        .db   "Puerta abriendo", 13, 10, 0
+MSG_ABIERTA:
+        .db   "Puerta abierta", 13, 10, 0
+MSG_CERRANDO:
+        .db   "Puerta cerrando", 13, 10, 0
+MSG_OBSTACULO:
+        .db   "Obstaculo detectado", 13, 10, 0
+MSG_DETENIDO:
+        .db   "Movimiento detenido", 13, 10, 0
+
