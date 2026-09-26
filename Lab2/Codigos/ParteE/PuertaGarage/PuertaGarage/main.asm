@@ -122,3 +122,203 @@ LO_IDLE:
         mov   obst_ant, temp
 LO_FIN:
         ret
+
+; MÁQUINA DE ESTADOS
+; Controla las transiciones según entradas, sensores y obstáculo
+MAQUINA_ESTADOS:
+
+        ; Si hay obstáculo, detener el sistema
+        tst   flag_obst
+        breq  ME_SIN_OBSTACULO
+        clr   flag_obst
+
+        ; Evita repetir la detención si ya está detenido
+        cpi   estado, ST_DETENIDA
+        breq  ME_YA_DETENIDA
+
+        ldi   estado, ST_DETENIDA
+        rcall SALIDAS_DETENIDA
+
+        ; Mensajes USART de seguridad
+        ldi   ZL, LOW(MSG_OBSTACULO*2)
+        ldi   ZH, HIGH(MSG_OBSTACULO*2)
+        rcall ENVIAR_STRING
+
+        ldi   ZL, LOW(MSG_DETENIDO*2)
+        ldi   ZH, HIGH(MSG_DETENIDO*2)
+        rcall ENVIAR_STRING
+
+        rjmp  ME_FIN
+
+ME_YA_DETENIDA:
+        rjmp  ME_FIN
+
+
+; Selección del estado actual
+ME_SIN_OBSTACULO:
+
+        cpi   estado, ST_CERRADA
+        breq  ME_CERRADA
+
+        cpi   estado, ST_ABRIENDO
+        breq  ME_ABRIENDO
+
+        cpi   estado, ST_ABIERTA
+        breq  ME_ABIERTA
+
+        cpi   estado, ST_CERRANDO
+        breq  ME_CERRANDO
+
+        cpi   estado, ST_DETENIDA
+        breq  ME_DETENIDA
+
+        rjmp  ME_FIN
+
+
+; ESTADO CERRADA: espera orden de apertura
+ME_CERRADA:
+
+        sbrs  flancos, BTN_ABRIR
+        rjmp  ME_FIN
+
+        ldi   estado, ST_ABRIENDO
+        rcall SALIDAS_ABRIENDO
+
+        ldi   ZL, LOW(MSG_ABRIENDO*2)
+        ldi   ZH, HIGH(MSG_ABRIENDO*2)
+        rcall ENVIAR_STRING
+
+        rjmp  ME_FIN
+
+
+; ESTADO ABRIENDO: espera sensor S1 o una orden de parada
+ME_ABRIENDO:
+
+        sbrc  entr_act, SENS_S1
+        rjmp  ME_AB_A_ABIERTA
+
+        sbrc  flancos, BTN_CERRAR
+        rjmp  ME_AB_A_DETENIDA
+
+        rjmp  ME_FIN
+
+
+; Transición ABRIENDO -> ABIERTA
+ME_AB_A_ABIERTA:
+
+        ldi   estado, ST_ABIERTA
+        rcall SALIDAS_ABIERTA
+
+        ldi   ZL, LOW(MSG_ABIERTA*2)
+        ldi   ZH, HIGH(MSG_ABIERTA*2)
+        rcall ENVIAR_STRING
+
+        rjmp  ME_FIN
+
+
+; Transición ABRIENDO -> DETENIDA
+ME_AB_A_DETENIDA:
+
+        ldi   estado, ST_DETENIDA
+        rcall SALIDAS_DETENIDA
+
+        ldi   ZL, LOW(MSG_DETENIDO*2)
+        ldi   ZH, HIGH(MSG_DETENIDO*2)
+        rcall ENVIAR_STRING
+
+        rjmp  ME_FIN
+
+
+; ESTADO ABIERTA: espera orden de cierre
+ME_ABIERTA:
+
+        sbrs  flancos, BTN_CERRAR
+        rjmp  ME_FIN
+
+        ldi   estado, ST_CERRANDO
+        rcall SALIDAS_CERRANDO
+
+        ldi   ZL, LOW(MSG_CERRANDO*2)
+        ldi   ZH, HIGH(MSG_CERRANDO*2)
+        rcall ENVIAR_STRING
+
+        rjmp  ME_FIN
+
+
+; ESTADO CERRANDO: espera sensor S2 o una orden de parada
+ME_CERRANDO:
+
+        sbrc  entr_act, SENS_S2
+        rjmp  ME_CE_A_CERRADA
+
+        sbrc  flancos, BTN_ABRIR
+        rjmp  ME_CE_A_DETENIDA
+
+        rjmp  ME_FIN
+
+
+; Transición CERRANDO -> CERRADA
+ME_CE_A_CERRADA:
+
+        ldi   estado, ST_CERRADA
+        rcall SALIDAS_CERRADA
+
+        ldi   ZL, LOW(MSG_CERRADA*2)
+        ldi   ZH, HIGH(MSG_CERRADA*2)
+        rcall ENVIAR_STRING
+
+        rjmp  ME_FIN
+
+
+; Transición CERRANDO -> DETENIDA
+ME_CE_A_DETENIDA:
+
+        ldi   estado, ST_DETENIDA
+        rcall SALIDAS_DETENIDA
+
+        ldi   ZL, LOW(MSG_DETENIDO*2)
+        ldi   ZH, HIGH(MSG_DETENIDO*2)
+        rcall ENVIAR_STRING
+
+        rjmp  ME_FIN
+
+
+; ESTADO DETENIDA: espera nueva orden
+ME_DETENIDA:
+
+        sbrc  flancos, BTN_ABRIR
+        rjmp  ME_DE_A_ABRIENDO
+
+        sbrc  flancos, BTN_CERRAR
+        rjmp  ME_DE_A_CERRANDO
+
+        rjmp  ME_FIN
+
+
+; Transición DETENIDA -> ABRIENDO
+ME_DE_A_ABRIENDO:
+
+        ldi   estado, ST_ABRIENDO
+        rcall SALIDAS_ABRIENDO
+
+        ldi   ZL, LOW(MSG_ABRIENDO*2)
+        ldi   ZH, HIGH(MSG_ABRIENDO*2)
+        rcall ENVIAR_STRING
+
+        rjmp  ME_FIN
+
+
+; Transición DETENIDA -> CERRANDO
+ME_DE_A_CERRANDO:
+
+        ldi   estado, ST_CERRANDO
+        rcall SALIDAS_CERRANDO
+
+        ldi   ZL, LOW(MSG_CERRANDO*2)
+        ldi   ZH, HIGH(MSG_CERRANDO*2)
+        rcall ENVIAR_STRING
+
+
+; Fin de la máquina de estados
+ME_FIN:
+        ret
