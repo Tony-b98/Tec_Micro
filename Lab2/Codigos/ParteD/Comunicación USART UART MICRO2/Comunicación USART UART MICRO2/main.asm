@@ -139,5 +139,22 @@ USART_INIT:
     ; 1 bit de stop
     ldi temp, (1<<UCSZ01) | (1<<UCSZ00)
     sts UCSR0C, temp
-
     ret
+
+; USART_RX
+; Espera hasta recibir un byte.
+; Salida: dato = byte recibido
+
+USART_RX:
+USART_RX_WAIT:
+    ; Leer estado USART
+    lds temp, UCSR0A
+
+    ; Esperar RXC0 = 1
+    sbrs temp, RXC0
+    rjmp USART_RX_WAIT
+
+    ; Leer byte recibido
+    lds dato, UDR0
+	ret
+
