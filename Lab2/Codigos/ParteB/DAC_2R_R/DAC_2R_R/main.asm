@@ -1,4 +1,9 @@
-
+;=====================================================================
+; Laboratorio 2 - Problema B: DAC R-2R de 8 bits
+; UTEC - Tecnologias de Microprocesamiento
+; Microcontrolador: ATmega328P sobre Arduino Uno - 16 MHz
+; Grupo 1 - Senales asignadas: 13 y 15
+;
 ; Mapeo DAC R-2R:
 ;   bit0 -> PB0 (D8)
 ;   bit1 -> PB1 (D9)
@@ -8,25 +13,32 @@
 ;   bit5 -> PB5 (D13)
 ;   bit6 -> PD6 (D6)
 ;   bit7 -> PD7 (D7)
+;
+; UART:
+;   PD0 -> RX
+;   PD1 -> TX
+;
+; Comandos UART:
+;   '1' = Senal 13
+;   '2' = Senal 15
+;   '+' = aumentar frecuencia
+;   '-' = disminuir frecuencia
+;=====================================================================
 
 .include "m328Pdef.inc"
 
-; Constantes del sistema
-.equ F_CPU      = 16000000 ; Frecuencia del Atmega328p
-.equ BAUD       = 9600      ; Velocidad del puerto serial
+.equ F_CPU      = 16000000
+.equ BAUD       = 9600
+.equ UBRRVAL    = (F_CPU/16/BAUD)-1
 
-; Valor necesario para configurar la velocidad de la UART
-.equ UBRRVAL    = (F_CPU/16/BAUD)-1 
+.equ OCR1A_INIT = 200
+.equ OCR1A_MIN  = 20
+.equ OCR1A_MAX  = 2000
+.equ OCR1A_STEP = 20
 
-; Conf. Timmer1
-
-.equ OCR1A_INIT = 200    ; Valor inicial
-.equ OCR1A_MIN  = 20     ; Valor minimo
-.equ OCR1A_MAX  = 2000   ; Valor maximo
-.equ OCR1A_STEP = 20     ; Paso para aumentar o disminuir
-
-
+;---------------------------------------------------------------------
 ; Registros
+;---------------------------------------------------------------------
 .def temp       = r16
 .def dato       = r17
 .def cero       = r18
@@ -35,8 +47,11 @@
 .def r_baseL    = r22
 .def r_baseH    = r23
 
-; Interrupciones a utilizar
+;=====================================================================
+; VECTORES DE INTERRUPCION
+;=====================================================================
 .cseg
+
 .org 0x0000
         rjmp RESET
 
@@ -44,6 +59,7 @@
         rjmp TIMER1_COMPA_ISR
 
 .org 0x0034
+
 
 ; PROGRAMA PRINCIPAL
 RESET:
@@ -61,7 +77,7 @@ RESET:
         rcall   UART_INIT
         rcall   TIMER1_INIT
 
-        ; Arranque por defecto con Señal 13
+        ; Arranque por defecto con Senal 13
         rcall   SELECCIONAR_SIG13
 
         sei
@@ -71,7 +87,8 @@ RESET:
         ldi     ZH, HIGH(MSG_MENU*2)
         rcall   PRINT_STRING
 
-		; BUCLE PRINCIPAL
+
+; BUCLE PRINCIPAL
 MAIN_LOOP:
 
         ; Consultar si llego un byte por UART
@@ -106,8 +123,10 @@ MAIN_LOOP:
         ; Cualquier otro caracter se ignora
         rjmp    MAIN_LOOP
 
-; COMANDOS UART
 
+;=====================================================================
+; COMANDOS UART
+;=====================================================================
 CMD_SIG13:
 
         rcall   SELECCIONAR_SIG13
@@ -146,6 +165,18 @@ CMD_MAS_LENTO:
         rjmp    MAIN_LOOP
 
 
+;=====================================================================
+; SELECCION DE SENAL
+;
+; Las dos LUT tienen exactamente 256 muestras.
+;
+; Como r_idx es un registro de 8 bits:
+;
+;   0, 1, 2, ... 254, 255, 0, 1...
+;
+; Por lo tanto no necesitamos guardar un largo de 256.
+;=====================================================================
+
 SELECCIONAR_SIG13:
 
         ; Guardar estado previo de interrupciones
@@ -183,25 +214,58 @@ SELECCIONAR_SIG15:
 
         ret
 
-; INICIALIZACION DE PUERTOS
 
+;=====================================================================
+; INICIALIZACION DE PUERTOS
+;=====================================================================
 PORTS_INIT:
-        ; PORTB: PB0 -> bit 0 DAC / PB1 -> bit 1 DAC
-        ;        PB2 -> bit 2 DAC / PB3 -> bit 3 DAC
-        ;        PB4 -> bit 4 DAC / PB5 -> bit 5 DAC
-	    ldi     temp, 0x3F
+
+        ;-------------------------------------------------------------
+        ; PORTB
+        ;
+        ; PB0 -> bit 0 DAC
+        ; PB1 -> bit 1 DAC
+        ; PB2 -> bit 2 DAC
+        ; PB3 -> bit 3 DAC
+        ; PB4 -> bit 4 DAC
+        ; PB5 -> bit 5 DAC
+        ;
+        ; PB6/PB7 se dejan libres porque corresponden al cristal.
+        ;-------------------------------------------------------------
+
+        ldi     temp, 0x3F
         out     DDRB, temp
-				
+
+
+        ;-------------------------------------------------------------
         ; PORTD
-        ; PD6 -> bit 6 DAC / PD7 -> bit 7 DAC
+        ;
+        ; PD6 -> bit 6 DAC
+        ; PD7 -> bit 7 DAC
+        ;
+        ; PD0/PD1 quedan para UART.
+        ;-------------------------------------------------------------
+
         ldi     temp, 0xC0
         out     DDRD, temp
 
+
         ; DAC inicialmente en 0
         clr     temp
+
         out     PORTB, temp
         out     PORTD, temp
+
         ret
+
+
+;=====================================================================
+; UART
+; 9600 baudios
+; 8 bits
+; sin paridad
+; 1 bit de stop
+;=====================================================================
 UART_INIT:
 
         ; Baud rate
@@ -225,36 +289,94 @@ UART_INIT:
 
         ret
 
-; Transmición UART
+
+;=====================================================================
+; TRANSMISION UART
+;
+; El byte a transmitir debe estar en TEMP.
+;=====================================================================
 UART_TX:
+
         ; Leer estado UART
         lds     r0, UCSR0A
-		; Esperar hasta que el buffer este libre
+
+        ; Esperar hasta que el buffer este libre
         sbrs    r0, UDRE0
         rjmp    UART_TX
-		; Transmitir
+
+        ; Transmitir
         sts     UDR0, temp
-		ret
-; Imprimir string
+
+        ret
+
+
+;=====================================================================
+; IMPRIMIR STRING
+;
 ; Z apunta al comienzo del string en Flash.
+; El string termina con 0.
+;=====================================================================
 PRINT_STRING:
+
         lpm     temp, Z+
+
         cpi     temp, 0
         breq    PRINT_STRING_FIN
+
         rcall   UART_TX
+
         rjmp    PRINT_STRING
 
-PRINT_STRING_FIN:
-        ret
-		
 
+PRINT_STRING_FIN:
+
+        ret
+
+
+;=====================================================================
+; TIMER1
+;
+; Modo CTC
+; TOP = OCR1A
+;
+; f_muestreo =
+;
+;          F_CPU
+; -------------------------
+;  prescaler * (OCR1A + 1)
+;
+; Prescaler = 8
+;
+; Con OCR1A = 200:
+;
+; f_muestreo =
+;
+; 16 MHz / [8*(200+1)]
+;
+; aproximadamente 9950 Hz
+;
+; En cada interrupcion se envia UNA muestra al DAC.
+;=====================================================================
 TIMER1_INIT:
+
+        ;-------------------------------------------------------------
         ; Detener Timer1 y configurar modo CTC
+        ;-------------------------------------------------------------
+
         clr     temp
         sts     TCCR1A, temp
 
         ldi     temp, (1<<WGM12)
         sts     TCCR1B, temp
+
+
+        ;-------------------------------------------------------------
+        ; OCR1A = 200
+        ;
+        ; Registro de 16 bits:
+        ; primero escribir HIGH
+        ; despues LOW
+        ;-------------------------------------------------------------
 
         ldi     temp, HIGH(OCR1A_INIT)
         sts     OCR1AH, temp
@@ -262,42 +384,77 @@ TIMER1_INIT:
         ldi     temp, LOW(OCR1A_INIT)
         sts     OCR1AL, temp
 
+
+        ;-------------------------------------------------------------
         ; TCNT1 = 0
+        ;-------------------------------------------------------------
+
         clr     temp
 
         sts     TCNT1H, temp
         sts     TCNT1L, temp
 
+
+        ;-------------------------------------------------------------
         ; Limpiar posible bandera pendiente
+        ;-------------------------------------------------------------
+
         ldi     temp, (1<<OCF1A)
         sts     TIFR1, temp
 
+
+        ;-------------------------------------------------------------
         ; Habilitar interrupcion Compare Match A
+        ;-------------------------------------------------------------
+
         ldi     temp, (1<<OCIE1A)
         sts     TIMSK1, temp
 
+
+        ;-------------------------------------------------------------
         ; Arrancar Timer1
+        ;
+        ; WGM12 = CTC
+        ; CS11  = prescaler 8
+        ;-------------------------------------------------------------
+
         ldi     temp, (1<<WGM12)|(1<<CS11)
         sts     TCCR1B, temp
 
         ret
 
-		; AUMENTAR FRECUENCIA
+
+;=====================================================================
+; AUMENTAR FRECUENCIA
+;
 ; Menor OCR1A = mayor frecuencia.
+;=====================================================================
 TIMER1_MAS_RAPIDO:
+
+        ;-------------------------------------------------------------
         ; Leer OCR1A
+        ;
         ; Para lectura:
         ; primero LOW
         ; despues HIGH
-        
+        ;-------------------------------------------------------------
+
         lds     ZL, OCR1AL
         lds     ZH, OCR1AH
 
+
+        ;-------------------------------------------------------------
         ; OCR1A = OCR1A - 20
+        ;-------------------------------------------------------------
+
         subi    ZL, LOW(OCR1A_STEP)
         sbci    ZH, HIGH(OCR1A_STEP)
 
+
+        ;-------------------------------------------------------------
         ; Verificar limite minimo
+        ;-------------------------------------------------------------
+
         cpi     ZL, LOW(OCR1A_MIN)
 
         ldi     temp, HIGH(OCR1A_MIN)
@@ -305,8 +462,10 @@ TIMER1_MAS_RAPIDO:
 
         brge    TMR_SET_RAPIDO
 
+
         ; Si pasa el limite:
         ; OCR1A = OCR1A_MIN
+
         ldi     ZL, LOW(OCR1A_MIN)
         ldi     ZH, HIGH(OCR1A_MIN)
 
@@ -321,21 +480,30 @@ TMR_SET_RAPIDO:
 
         ret
 
-; DISMINUIR FRECUENCIA
-; Mayor OCR1A = menor frecuencia.
 
+;=====================================================================
+; DISMINUIR FRECUENCIA
+;
+; Mayor OCR1A = menor frecuencia.
+;=====================================================================
 TIMER1_MAS_LENTO:
 
         ; Leer OCR1A
         lds     ZL, OCR1AL
         lds     ZH, OCR1AH
 
+
+        ;-------------------------------------------------------------
         ; OCR1A = OCR1A + 20
+        ;-------------------------------------------------------------
 
         subi    ZL, LOW(-OCR1A_STEP)
         sbci    ZH, HIGH(-OCR1A_STEP)
 
+
+        ;-------------------------------------------------------------
         ; Verificar limite maximo
+        ;-------------------------------------------------------------
 
         cpi     ZL, LOW(OCR1A_MAX)
 
@@ -360,47 +528,93 @@ TMR_SET_LENTO:
 
         ret
 
+
+;=====================================================================
 ; INTERRUPCION TIMER1 COMPARE MATCH A
+;
+; Cada vez que ocurre:
+;
+; 1. Busca una muestra en la LUT.
+; 2. Coloca bits 0-5 en PORTB.
+; 3. Coloca bits 6-7 en PORTD.
+; 4. Incrementa indice.
+;
+; Cuando r_idx pasa:
+;
+; 255 -> 0
+;
+; automaticamente por ser un registro de 8 bits.
+;=====================================================================
 TIMER1_COMPA_ISR:
 
+        ;-------------------------------------------------------------
         ; Guardar registros utilizados
+        ;-------------------------------------------------------------
+
         push    temp
         push    dato
         push    ZL
         push    ZH
+
+
         ; Guardar SREG
         in      temp, SREG
         push    temp
 
+
+        ;-------------------------------------------------------------
         ; Z = direccion base + indice
+        ;-------------------------------------------------------------
 
         mov     ZL, r_baseL
         mov     ZH, r_baseH
 
         add     ZL, r_idx
         adc     ZH, cero
-    
-	; Leer muestra desde Flash
+
+
+        ;-------------------------------------------------------------
+        ; Leer muestra desde FlashSe agrega 
+        ;-------------------------------------------------------------
+
         lpm     dato, Z
 
 
+        ;-------------------------------------------------------------
         ; Bits 0 a 5 -> PORTB
+        ;-------------------------------------------------------------
+
         mov     temp, dato
 
         andi    temp, 0x3F
 
         out     PORTB, temp
 
+
+        ;-------------------------------------------------------------
         ; Bits 6 y 7 -> PORTD
+        ;-------------------------------------------------------------
+
         mov     temp, dato
 
         andi    temp, 0xC0
 
         out     PORTD, temp
 
+
+        ;-------------------------------------------------------------
+        ; Siguiente muestra
+        ;
+        ; 255 + 1 = 0 automaticamente
+        ;-------------------------------------------------------------
+
         inc     r_idx
 
+
+        ;-------------------------------------------------------------
         ; Restaurar contexto
+        ;-------------------------------------------------------------
+
         pop     temp
         out     SREG, temp
 
@@ -411,7 +625,11 @@ TIMER1_COMPA_ISR:
 
         reti
 
+
+;=====================================================================
 ; MENSAJES UART
+;=====================================================================
+
 MSG_MENU:
 
         .db "\r\n--- DAC R-2R 8 bits - Grupo 1 ---\r\n1: Senal 13\r\n2: Senal 15\r\n+ : mas rapido   - : mas lento\r\n> ",0
@@ -422,6 +640,13 @@ MSG_SIG13:
 
 MSG_SIG15:
     .db "\r\nMostrando Senal 15\r\n> ",0,0
+
+
+;=====================================================================
+; SENAL 13
+;
+; 256 muestras exactas del PDF.
+;=====================================================================
 
 SIG13:
 
@@ -442,6 +667,15 @@ SIG13:
         .db 0x05,0x05,0x05,0x04,0x04,0x03,0x03,0x03,0x03,0x02,0x02,0x02,0x02,0x01,0x01,0x01
         .db 0x01,0x01,0x01,0x01,0x01,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00
 
+
+;=====================================================================
+; SENAL 15
+;
+; 256 muestras exactas del PDF.
+;
+; El PDF contiene dos periodos consecutivos de la onda.
+;=====================================================================
+
 SIG15:
 
         .db 0x00,0x06,0x0c,0x12,0x18,0x1f,0x25,0x2b,0x31,0x37,0x3d,0x44,0x4a,0x4f,0x55,0x5b
@@ -461,3 +695,5 @@ SIG15:
         .db 0xeb,0xe9,0xe6,0xe3,0xe0,0xdd,0xda,0xd7,0xd4,0xd0,0xcc,0xc9,0xc5,0xc1,0xbc,0xb8
         .db 0xb4,0xaf,0xab,0xa6,0xa1,0x9c,0x97,0x92,0x8d,0x88,0x83,0x7d,0x78,0x72,0x6d,0x67
         .db 0x61,0x5b,0x55,0x4f,0x4a,0x44,0x3d,0x37,0x31,0x2b,0x25,0x1f,0x18,0x12,0x0c,0x06
+
+
