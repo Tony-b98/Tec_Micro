@@ -101,3 +101,219 @@ static void lcd_error_sensor(uint8_t error);
 
 // Menu UART
 static void procesar_comando(void);
+ // FUNCION PRINCIPAL
+ 
+ int main(void)
+ {
+	 uint8_t temperatura = 0;
+	 uint8_t accion      = 1;
+	 uint8_t error;
+
+	 char linea_lcd[17];    // LCD: 16 caracteres + '\0'
+	 char linea_uart[48];   // UART: mensajes largos (30 max)
+
+	 // Inicializaciones
+	 
+	 uart_init();
+	 leds_init();
+
+	 twi_init();
+	 twi_lcd_init();
+
+	 // 0x06: incrementar cursor SIN desplazar display.
+	 // 0x0C: display ON, cursor OFF, parpadeo OFF.
+	 twi_lcd_cmd(0x06);
+	 twi_lcd_cmd(0x0C);
+
+	 // PC0 como entrada con pull-up para el DHT11.
+	 DHT_DDR  &= ~(1 << DHT_BIT);
+	 DHT_PORT |=  (1 << DHT_BIT);
+
+	 timer1_init();
+	 sei();
+
+	 // Mensaje inicial por UART.
+	 uart_print(
+	 "\r\n"
+	 "=== CONTROL DE TEMPERATURA ===\r\n"
+	 "P = cambiar punto medio\r\n\r\n"
+	 );
+
+	 // LCD inicial (maximo 16 caracteres por linea).
+	 lcd_clear_safe();
+	 twi_lcd_cmd(0x80);
+	 twi_lcd_msg("Control de Temp ");
+
+	 snprintf(linea_lcd, sizeof(linea_lcd), "PM:%u C          ", punto_medio);
+	 twi_lcd_cmd(0xC0);
+	 twi_lcd_msg(linea_lcd);
+
+	 // Esperar estabilizacion inicial del DHT11.
+	 _delay_ms(2000);
+
+	 // LOOP PRINCIPAL
+	 
+	 while (1)
+	 {
+		 
+		 if (cmd_ready || cmd_invalid)
+		 {
+			 procesar_comando();
+		 }
+
+		 // Medicion cada 5 segundos (pausada durante cambio de PM).
+		 if (flag_medir && !esperando_pm)
+		 {
+			 flag_medir = 0;
+
+			 error = dht11_leer(&temperatura);
+
+			 // LECTURA CORRECTA
+			 if (error == 0)
+			 {
+				 accion = decidir_accion(temperatura, punto_medio);
+				 aplicar_accion(accion);
+
+				 // Caso maximo:"Temp=50 C | Accion=FAN MEDIA\r\n" = 30 chars.
+				 snprintf(
+				 linea_uart,
+				 sizeof(linea_uart),
+				 "Temp=%u C | Accion=%s\r\n",
+				 temperatura,
+				 accion_txt(accion)
+				 );
+				 uart_print(linea_uart);
+
+				 lcd_mostrar(temperatura);
+			 }
+
+			 // ERROR DHT11: apagar salidas por seguridad
+			 else
+			 {
+				 leds_off();
+				 calefactor = 0;
+				 pwm_fan    = 0;
+
+				 snprintf(
+				 linea_uart,
+				 sizeof(linea_uart),
+				 "MSG,ERROR DHT11 codigo=%u\r\n",
+				 error
+				 );
+				 uart_print(linea_uart);
+
+				 lcd_error_sensor(error);
+			 }
+		 }
+	 }
+
+	 return 0;   // inalcanzable
+ }
+ // FUNCION PRINCIPAL
+ 
+ int main(void)
+ {
+	 uint8_t temperatura = 0;
+	 uint8_t accion      = 1;
+	 uint8_t error;
+
+	 char linea_lcd[17];    // LCD: 16 caracteres + '\0'
+	 char linea_uart[48];   // UART: mensajes largos (30 max)
+
+	 // Inicializaciones
+	 
+	 uart_init();
+	 leds_init();
+
+	 twi_init();
+	 twi_lcd_init();
+
+	 // 0x06: incrementar cursor SIN desplazar display.
+	 // 0x0C: display ON, cursor OFF, parpadeo OFF.
+	 twi_lcd_cmd(0x06);
+	 twi_lcd_cmd(0x0C);
+
+	 // PC0 como entrada con pull-up para el DHT11.
+	 DHT_DDR  &= ~(1 << DHT_BIT);
+	 DHT_PORT |=  (1 << DHT_BIT);
+
+	 timer1_init();
+	 sei();
+
+	 // Mensaje inicial por UART.
+	 uart_print(
+	 "\r\n"
+	 "=== CONTROL DE TEMPERATURA ===\r\n"
+	 "P = cambiar punto medio\r\n\r\n"
+	 );
+
+	 // LCD inicial (maximo 16 caracteres por linea).
+	 lcd_clear_safe();
+	 twi_lcd_cmd(0x80);
+	 twi_lcd_msg("Control de Temp ");
+
+	 snprintf(linea_lcd, sizeof(linea_lcd), "PM:%u C          ", punto_medio);
+	 twi_lcd_cmd(0xC0);
+	 twi_lcd_msg(linea_lcd);
+
+	 // Esperar estabilizacion inicial del DHT11.
+	 _delay_ms(2000);
+
+	 // LOOP PRINCIPAL
+	 
+	 while (1)
+	 {
+		 
+		 if (cmd_ready || cmd_invalid)
+		 {
+			 procesar_comando();
+		 }
+
+		 // Medicion cada 5 segundos (pausada durante cambio de PM).
+		 if (flag_medir && !esperando_pm)
+		 {
+			 flag_medir = 0;
+
+			 error = dht11_leer(&temperatura);
+
+			 // LECTURA CORRECTA
+			 if (error == 0)
+			 {
+				 accion = decidir_accion(temperatura, punto_medio);
+				 aplicar_accion(accion);
+
+				 // Caso maximo:"Temp=50 C | Accion=FAN MEDIA\r\n" = 30 chars.
+				 snprintf(
+				 linea_uart,
+				 sizeof(linea_uart),
+				 "Temp=%u C | Accion=%s\r\n",
+				 temperatura,
+				 accion_txt(accion)
+				 );
+				 uart_print(linea_uart);
+
+				 lcd_mostrar(temperatura);
+			 }
+
+			 // ERROR DHT11: apagar salidas por seguridad
+			 else
+			 {
+				 leds_off();
+				 calefactor = 0;
+				 pwm_fan    = 0;
+
+				 snprintf(
+				 linea_uart,
+				 sizeof(linea_uart),
+				 "MSG,ERROR DHT11 codigo=%u\r\n",
+				 error
+				 );
+				 uart_print(linea_uart);
+
+				 lcd_error_sensor(error);
+			 }
+		 }
+	 }
+
+	 return 0;   // inalcanzable
+ }
