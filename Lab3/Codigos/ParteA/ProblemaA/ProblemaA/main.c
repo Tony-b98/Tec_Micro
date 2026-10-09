@@ -308,3 +308,76 @@ ISR(USART_RX_vect)
 
 		return;
 	}
+    // Modo normal
+
+    if (c == 'P' || c == 'p')
+    {
+	    if (cmd_idx > 0)
+	    {
+		    // P embebida tras otros caracteres: basura.
+		    cmd_invalid = 1;
+		    cmd_idx     = 0;
+		    return;
+	    }
+
+	    cmd_p_cnt++;
+
+	    if (cmd_p_cnt == 1)
+	    {
+		    // Primera P de la linea: solicitar procesamiento.
+		    // cmd_p_cnt se mantiene en 1 para detectar P extra.
+		    cmd_buf[0] = 'P';
+		    cmd_buf[1] = '\0';
+		    cmd_ready  = 1;
+	    }
+	    else
+	    {
+		    // Segunda P o posterior de la misma linea: rechazo.
+		    cmd_invalid = 1;
+	    }
+
+	    return;
+    }
+
+    // Otros caracteres imprimibles
+
+    if (cmd_p_cnt > 0)
+    {
+	    // Ya habia una P: "Phola" -> invalida.
+	    cmd_invalid = 1;
+	    cmd_idx     = 0;
+	    return;
+    }
+
+    if (cmd_idx < 15)
+    {
+	    cmd_buf[cmd_idx++] = c;
+    }
+    else
+    {
+	    cmd_invalid = 1;
+	    cmd_idx     = 0;
+    }
+    }
+
+    //  DHT11: esperar mientras el pin este en un nivel determinado
+    // Devuelve: 1 = cambio detectado o 0 = timeout (~150 us)
+    
+    static uint8_t dht_esperar_mientras(uint8_t nivel)
+    {
+	    uint16_t timeout = 0;
+
+	    while (((DHT_PINR >> DHT_BIT) & 0x01) == nivel)
+	    {
+		    _delay_us(1);
+
+		    timeout++;
+
+		    if (timeout > 150)
+		    {
+			    return 0;
+		    }
+	    }
+
+	    return 1;
+    }
