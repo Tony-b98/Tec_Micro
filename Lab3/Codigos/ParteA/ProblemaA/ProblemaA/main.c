@@ -101,8 +101,9 @@ static void lcd_error_sensor(uint8_t error);
 
 // Menu UART
 static void procesar_comando(void);
- // FUNCION PRINCIPAL
  
+ 
+ // FUNCION PRINCIPAL 
  int main(void)
  {
 	 uint8_t temperatura = 0;
@@ -209,111 +210,101 @@ static void procesar_comando(void);
 
 	 return 0;   // inalcanzable
  }
- // FUNCION PRINCIPAL
- 
- int main(void)
- {
-	 uint8_t temperatura = 0;
-	 uint8_t accion      = 1;
-	 uint8_t error;
 
-	 char linea_lcd[17];    // LCD: 16 caracteres + '\0'
-	 char linea_uart[48];   // UART: mensajes largos (30 max)
+//  4. IMPLEMENTACION DE FUNCIONES
 
-	 // Inicializaciones
-	 
-	 uart_init();
-	 leds_init();
+// LCD: clear con espera obligatoria.
+// El comando 0x01 (clear) del HD44780 tarda 1.52 ms.
 
-	 twi_init();
-	 twi_lcd_init();
+static void lcd_clear_safe(void)
+{
+	twi_lcd_clear();
+	_delay_ms(2);
+}
 
-	 // 0x06: incrementar cursor SIN desplazar display.
-	 // 0x0C: display ON, cursor OFF, parpadeo OFF.
-	 twi_lcd_cmd(0x06);
-	 twi_lcd_cmd(0x0C);
+//  UART
+static void uart_init(void)
+{
+	UBRR0H = 0;
+	UBRR0L = 103;                     // 9600 baudios @ 16 MHz
 
-	 // PC0 como entrada con pull-up para el DHT11.
-	 DHT_DDR  &= ~(1 << DHT_BIT);
-	 DHT_PORT |=  (1 << DHT_BIT);
+	UCSR0B = (1 << RXEN0) | (1 << TXEN0) | (1 << RXCIE0);
+	UCSR0C = (1 << UCSZ01) | (1 << UCSZ00);   // 8N1
+}
 
-	 timer1_init();
-	 sei();
+static void uart_tx(char c)
+{
+	while (!(UCSR0A & (1 << UDRE0)));
+	UDR0 = c;
+}
 
-	 // Mensaje inicial por UART.
-	 uart_print(
-	 "\r\n"
-	 "=== CONTROL DE TEMPERATURA ===\r\n"
-	 "P = cambiar punto medio\r\n\r\n"
-	 );
+static void uart_print(const char *s)
+{
+	while (*s)
+	{
+		uart_tx(*s++);
+	}
+}
 
-	 // LCD inicial (maximo 16 caracteres por linea).
-	 lcd_clear_safe();
-	 twi_lcd_cmd(0x80);
-	 twi_lcd_msg("Control de Temp ");
+// RECEPCION UART
+// REGLAS DE ACEPTACION:
+// Solo una 'P' habilita el menu
+// CAMBIO DE PM:
+// Solo digitos; al completarse 2 se procesa.
+// Cualquier otro caracter CANCELA el ingreso por completo.
 
-	 snprintf(linea_lcd, sizeof(linea_lcd), "PM:%u C          ", punto_medio);
-	 twi_lcd_cmd(0xC0);
-	 twi_lcd_msg(linea_lcd);
+ISR(USART_RX_vect)
+{
+	char c = UDR0;
 
-	 // Esperar estabilizacion inicial del DHT11.
-	 _delay_ms(2000);
+	// Enter (\r o \n): cerrar la linea
+	if (c == '\r' || c == '\n')
+	{
+		if (!esperando_pm && cmd_idx > 0)
+		{
+			// Linea con caracteres que nunca tuvo una P inicial.
+			cmd_invalid = 1;
+		}
 
-	 // LOOP PRINCIPAL
-	 
-	 while (1)
-	 {
-		 
-		 if (cmd_ready || cmd_invalid)
-		 {
-			 procesar_comando();
-		 }
+		if (!esperando_pm)
+		{
+			cmd_idx = 0;
+		}
 
-		 // Medicion cada 5 segundos (pausada durante cambio de PM).
-		 if (flag_medir && !esperando_pm)
-		 {
-			 flag_medir = 0;
+		return;
+	}
 
-			 error = dht11_leer(&temperatura);
+	// Ignorar caracteres no imprimibles
+	if (c < 0x20 || c > 0x7E)
+	{
+		return;
+	}
 
-			 // LECTURA CORRECTA
-			 if (error == 0)
-			 {
-				 accion = decidir_accion(temperatura, punto_medio);
-				 aplicar_accion(accion);
+	// Modo ingreso de PM: solo digitos
+	if (esperando_pm)
+	{
+		if (c >= '0' && c <= '9')
+		{
+			if (cmd_idx < 2)
+			{
+				cmd_buf[cmd_idx++] = c;
+			}
 
-				 // Caso maximo:"Temp=50 C | Accion=FAN MEDIA\r\n" = 30 chars.
-				 snprintf(
-				 linea_uart,
-				 sizeof(linea_uart),
-				 "Temp=%u C | Accion=%s\r\n",
-				 temperatura,
-				 accion_txt(accion)
-				 );
-				 uart_print(linea_uart);
+			if (cmd_idx == 2)
+			{
+				cmd_buf[2] = '\0';
+				cmd_idx    = 0;
+				cmd_ready  = 1;
+			}
+		}
+		else
+		{
+			// Letra o simbolo durante el ingreso: se CANCELA el modo PM por completo.
+			esperando_pm = 0;
+			cmd_idx      = 0;
+			cmd_p_cnt    = 0;
+			cmd_invalid  = 1;   // main imprimira el error
+		}
 
-				 lcd_mostrar(temperatura);
-			 }
-
-			 // ERROR DHT11: apagar salidas por seguridad
-			 else
-			 {
-				 leds_off();
-				 calefactor = 0;
-				 pwm_fan    = 0;
-
-				 snprintf(
-				 linea_uart,
-				 sizeof(linea_uart),
-				 "MSG,ERROR DHT11 codigo=%u\r\n",
-				 error
-				 );
-				 uart_print(linea_uart);
-
-				 lcd_error_sensor(error);
-			 }
-		 }
-	 }
-
-	 return 0;   // inalcanzable
- }
+		return;
+	}
