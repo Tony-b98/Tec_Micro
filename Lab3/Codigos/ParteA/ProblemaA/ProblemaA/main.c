@@ -381,3 +381,98 @@ ISR(USART_RX_vect)
 
 	    return 1;
     }
+	
+// DHT11: lectura de TEMPERATURA
+//  La trama completa del sensor es de 40 bits:
+//   datos[0] = humedad entera      (se lee, se descarta)
+//   datos[1] = humedad decimal     (se lee, se descarta)
+//   datos[2] = temperatura entera  (se almacena)
+//  datos[3] = temperatura decimal (se lee, se descarta)
+//  datos[4] = checksum (incluye los bytes de humedad)
+ /* Los bytes de humedad DEBEN leerse para completar la trama y
+ * verificar el checksum, pero NO se almacenan ni se reportan
+ * el control solo depende de la temperatura.*/
+ /* Retorno:
+ * 0 = OK
+ * 1 = timeout espera inicial
+ * 2 = timeout respuesta LOW
+ * 3 = timeout respuesta HIGH
+ * 4 = timeout comienzo de bit
+ * 5 = timeout final de bit
+ * 6 = checksum incorrecto
+ * 7 = trama sospechosa de solo ceros
+  */
+
+static uint8_t dht11_leer(uint8_t *temp)
+{
+    uint8_t datos[5] = {0, 0, 0, 0, 0};
+    uint8_t i;
+
+    cli();
+
+    // START 
+    // PC0 como salida, DATA LOW ~20 ms.
+    
+	DHT_DDR  |=  (1 << DHT_BIT);
+    DHT_PORT &= ~(1 << DHT_BIT);
+    _delay_ms(20);
+
+    // Liberar DATA: HIGH 30 us y luego entrada con pull-up. 
+    DHT_PORT |=  (1 << DHT_BIT);
+    _delay_us(30);
+    DHT_DDR  &= ~(1 << DHT_BIT);
+    DHT_PORT |=  (1 << DHT_BIT);
+
+    // RESPUESTA DEL SENSOR (80 us LOW + 80 us HIGH)
+
+    // La linea deberia estar HIGH y el DHT11 la lleva a LOW.
+    if (!dht_esperar_mientras(1))
+    {
+        sei();
+        return 1;
+    }
+
+    // Fin del LOW de respuesta. 
+    if (!dht_esperar_mientras(0))
+    {
+        sei();
+        return 2;
+    }
+
+    // Fin del HIGH de respuesta. 
+    if (!dht_esperar_mientras(1))
+    {
+        sei();
+        return 3;
+    }
+
+    // LECTURA DE LOS 40 BITS 
+    for (i = 0; i < 40; i++)
+    {
+        // Fin del LOW de ~50 us correspondiente al bit.
+        if (!dht_esperar_mientras(0))
+        {
+            sei();
+            return 4;
+        }
+         // Pulso HIGH:
+         // Se espera 40 us y se mira el nivel
+        _delay_us(40);
+
+        datos[i / 8] <<= 1;
+
+        if (DHT_PINR & (1 << DHT_BIT))
+        {
+            // Sigue HIGH despues de 40 us
+            datos[i / 8] |= 1;
+
+            // Esperar el final del HIGH.
+            if (!dht_esperar_mientras(1))
+            {
+                sei();
+                return 5;
+            }
+        }
+    }
+
+    sei();
