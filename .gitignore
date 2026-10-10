@@ -9,6 +9,8 @@
 !*.c
 !*.h
 !*.py
+!*.m
+!*.mlx
 
 # Proyectos Microchip Studio
 !*.cproj
@@ -41,5 +43,4 @@
 !*.drawio
 
 # El propio gitignore
-!.gitignore*.atsln
-*.atsln
+!.gitignore
