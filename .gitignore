@@ -8,6 +8,7 @@
 !*.asm
 !*.c
 !*.h
+!*.py
 
 # Proyectos Microchip Studio
 !*.cproj
