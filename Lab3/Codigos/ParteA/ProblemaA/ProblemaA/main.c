@@ -476,3 +476,98 @@ static uint8_t dht11_leer(uint8_t *temp)
     }
 
     sei();
+	
+    // CHECKSUM
+    if ((uint8_t)(datos[0] + datos[1] + datos[2] + datos[3]) != datos[4])
+    {
+	    return 6;
+    }
+
+    // Solo la temperatura se almacena.
+    *temp = datos[2];
+
+    // Trama falsa de 40 ceros
+    if ((datos[0] == 0) && (datos[2] == 0))
+    {
+	    return 7;
+    }
+
+    return 0;
+    }
+
+    //  LEDs
+    static void leds_init(void)
+    {
+	    DDRB |= (1 << DDB1) | (1 << DDB2) | (1 << DDB3) | (1 << DDB4);
+
+	    leds_off();
+    }
+
+    static void leds_off(void)
+    {
+	    PORTB &=
+	    ~(
+	    (1 << LED_CALEF) |
+	    (1 << LED_BAJA)  |
+	    (1 << LED_MEDIA) |
+	    (1 << LED_ALTA)
+	    );
+    }
+
+    static void calef_set(uint8_t on)
+    {
+	    if (on)
+	    {
+		    PORTB |= (1 << LED_CALEF);
+	    }
+	    else
+	    {
+		    PORTB &= ~(1 << LED_CALEF);
+	    }
+    }
+
+    // LEDs del ventilador (acumulativo):
+    // nivel 0 = apagado
+    // nivel 1 = D10
+    // nivel 2 = D10 + D11
+    // nivel 3 = D10 + D11 + D12
+
+    static void fan_leds(uint8_t nivel)
+    {
+	    if (nivel >= 1)
+	    PORTB |= (1 << LED_BAJA);
+	    else
+	    PORTB &= ~(1 << LED_BAJA);
+
+	    if (nivel >= 2)
+	    PORTB |= (1 << LED_MEDIA);
+	    else
+	    PORTB &= ~(1 << LED_MEDIA);
+
+	    if (nivel >= 3)
+	    PORTB |= (1 << LED_ALTA);
+	    else
+	    PORTB &= ~(1 << LED_ALTA);
+    }
+
+    // TIMER1: interrupcion cada 1 s (CTC, prescalador 1024).
+    // Cada 5 interrupciones se solicita una medicion.
+    
+    static void timer1_init(void)
+    {
+	    TCCR1A = 0;
+	    TCCR1B = (1 << WGM12) | (1 << CS12) | (1 << CS10);
+	    OCR1A  = 15624;
+	    TIMSK1 = (1 << OCIE1A);
+    }
+
+    ISR(TIMER1_COMPA_vect)
+    {
+	    segundos++;
+
+	    if (segundos >= 5)
+	    {
+		    segundos   = 0;
+		    flag_medir = 1;
+	    }
+    }
