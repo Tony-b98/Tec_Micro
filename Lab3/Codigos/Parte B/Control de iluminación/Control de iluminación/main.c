@@ -30,3 +30,51 @@ volatile uint16_t setpoint = 500;
 volatile char rx_buffer[5];
 volatile uint8_t rx_index = 0;
 volatile uint8_t comando_listo = 0;
+
+// ADC
+void ADC_init(void)
+{
+	// Referencia AVcc
+	ADMUX = (1 << REFS0);
+
+	// ADC habilitado
+	// Prescaler 128
+	ADCSRA =
+	(1 << ADEN) |
+	(1 << ADPS2) |
+	(1 << ADPS1) |
+	(1 << ADPS0);
+}
+
+uint16_t ADC_read(uint8_t channel)
+{
+	// Seleccionar ADC0, ADC1, etc.
+	ADMUX = (ADMUX & 0xF0) | (channel & 0x0F);
+
+	// Iniciar conversion
+	ADCSRA |= (1 << ADSC);
+
+	// Esperar final
+	while (ADCSRA & (1 << ADSC));
+
+	return ADC;
+}
+
+// UART
+// 9600 baud - 8N1
+void UART_init(void)
+{
+	UBRR0H = 0;
+	UBRR0L = 103;
+
+	// RX, TX e interrupcion de recepcion
+	UCSR0B =
+	(1 << RXEN0) |
+	(1 << TXEN0) |
+	(1 << RXCIE0);
+
+	// 8 bits, sin paridad, 1 stop
+	UCSR0C =
+	(1 << UCSZ01) |
+	(1 << UCSZ00);
+}
