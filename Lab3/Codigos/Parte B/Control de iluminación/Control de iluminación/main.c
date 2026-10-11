@@ -344,3 +344,61 @@ void procesar_setpoint(void)
 		UART_send_string("Ingrese un valor entre 0 y 1023\r\n");
 	}
 }
+
+// PWM
+// Timer0 - OC0A - D6
+void PWM_init(void)
+{
+	DDRD |= (1 << MOTOR_ENA);
+
+	// Fast PWM, OC0A no invertido
+	TCCR0A =
+	(1 << COM0A1) |
+	(1 << WGM01) |
+	(1 << WGM00);
+
+	// Prescaler 64
+	TCCR0B =
+	(1 << CS01) |
+	(1 << CS00);
+
+	OCR0A = 0;
+}
+
+void PWM_set(uint8_t pwm)
+{
+	OCR0A = pwm;
+}
+
+// MOTOR
+void MOTOR_init(void)
+{
+	DDRD |=
+	(1 << MOTOR_IN1) |
+	(1 << MOTOR_IN2);
+
+	PORTD &= ~(1 << MOTOR_IN1);
+	PORTD &= ~(1 << MOTOR_IN2);
+}
+
+void MOTOR_abrir(void)
+{
+	// Si físicamente gira al revés,
+	// intercambiar estas dos líneas
+	PORTD |=  (1 << MOTOR_IN1);
+	PORTD &= ~(1 << MOTOR_IN2);
+}
+
+void MOTOR_cerrar(void)
+{
+	PORTD &= ~(1 << MOTOR_IN1);
+	PORTD |=  (1 << MOTOR_IN2);
+}
+
+void MOTOR_stop(void)
+{
+	PWM_set(0);
+
+	PORTD &= ~(1 << MOTOR_IN1);
+	PORTD &= ~(1 << MOTOR_IN2);
+}
