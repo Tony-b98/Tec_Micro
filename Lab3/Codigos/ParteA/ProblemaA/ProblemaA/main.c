@@ -571,3 +571,227 @@ static uint8_t dht11_leer(uint8_t *temp)
 		    flag_medir = 1;
 	    }
     }
+
+//  DECISION DE CONTROL
+// Retorno:
+// 0 = calefactor | 1 = reposo | 2 = fan baja
+// 3 = fan media  | 4 = fan alta
+
+// Para PM = 20: <=15, 16-25, 26-35, 36-45, >=46.
+
+static uint8_t decidir_accion(uint8_t temperatura, uint8_t pm)
+{
+	if (temperatura <= (pm - OFFSET_CALEF))
+	{
+		return 0;
+	}
+
+	if (temperatura <= (pm + OFFSET_BAJO))
+	{
+		return 1;
+	}
+
+	if (temperatura <= (pm + OFFSET_MEDIO))
+	{
+		return 2;
+	}
+
+	if (temperatura <= (pm + OFFSET_ALTO))
+	{
+		return 3;
+	}
+
+	return 4;
+}
+
+static const char *accion_txt(uint8_t accion)
+{
+	switch (accion)
+	{
+		case 0:  return "CALEF ON";
+		case 1:  return "REPOSO";
+		case 2:  return "FAN BAJA";
+		case 3:  return "FAN MEDIA";
+		default: return "FAN ALTA";
+	}
+}
+
+static void aplicar_accion(uint8_t accion)
+{
+	calefactor = 0;
+	pwm_fan    = 0;
+
+	switch (accion)
+	{
+		case 0:
+		calefactor = 1;
+		calef_set(1);
+		fan_leds(0);
+		break;
+
+		case 1:
+		calef_set(0);
+		fan_leds(0);
+		break;
+
+		case 2:
+		calef_set(0);
+		pwm_fan = PWM_BAJA;
+		fan_leds(1);
+		break;
+
+		case 3:
+		calef_set(0);
+		pwm_fan = PWM_MEDIA;
+		fan_leds(2);
+		break;
+
+		default:
+		calef_set(0);
+		pwm_fan = PWM_ALTA;
+		fan_leds(3);
+		break;
+	}
+}
+
+//  LCD: temperatura actual y rango de confort del PM.
+static void lcd_mostrar(uint8_t temperatura)
+{
+	char linea[17];
+
+	uint8_t limite_inf = punto_medio - OFFSET_CALEF;
+	uint8_t limite_sup = punto_medio + OFFSET_BAJO;
+
+	snprintf(linea, sizeof(linea), "Temp: %u C       ", temperatura);
+	twi_lcd_cmd(0x80);
+	twi_lcd_msg(linea);
+
+	snprintf(linea, sizeof(linea), "Rango:%u-%u C    ", limite_inf, limite_sup);
+	twi_lcd_cmd(0xC0);
+	twi_lcd_msg(linea);
+}
+
+static void lcd_error_sensor(uint8_t error)
+{
+	char linea[17];
+
+	twi_lcd_cmd(0x80);
+	twi_lcd_msg("ERROR DHT11     ");
+
+	snprintf(linea, sizeof(linea), "Codigo: %u       ", error);
+	twi_lcd_cmd(0xC0);
+	twi_lcd_msg(linea);
+}
+
+//  MENU UART
+static void procesar_comando(void)
+{
+	char buffer[16];
+	int  valor;
+
+	cli();
+	strcpy(buffer, (const char *)cmd_buf);
+	cmd_ready = 0;
+	sei();
+
+	// Entrada invalida detectada por la ISR
+	if (cmd_invalid)
+	{
+		cli();
+		cmd_invalid = 0;
+		cmd_idx     = 0;
+		cmd_p_cnt   = 0;
+		sei();
+
+		uart_print("\r\nERROR: entrada no valida.\r\n");
+
+		if (esperando_pm)
+		{
+			uart_print("Ingrese SOLO dos digitos (10 a 25): ");
+		}
+		else
+		{
+			uart_print("Comando valido: una sola P\r\n");
+		}
+
+		return;
+	}
+
+	// Modo cambio de PM: buffer contiene los dos digitos
+	if (esperando_pm)
+	{
+		valor = atoi(buffer);
+
+		// PM_MAX depende de T_MAX_SENSOR: se rechaza un PM demasiado proximo al maximo del sensor.
+		if (valor < PM_MIN || valor > PM_MAX)
+		{
+			uart_print("\r\nERROR: PM fuera de rango.\r\n");
+			uart_print("Ingrese un valor entre 10 y 25: ");
+
+			cli();
+			cmd_idx = 0;
+			sei();
+
+			return;
+		}
+
+		punto_medio  = (uint8_t)valor;
+		esperando_pm = 0;
+
+		// Reinicio completo del estado de recepcion y del periodo de sensado.
+		cli();
+		segundos   = 0;
+		flag_medir = 0;
+		cmd_idx    = 0;
+		cmd_p_cnt  = 0;
+		memset((void *)cmd_buf, 0, sizeof(cmd_buf));
+		sei();
+
+		uart_print("\r\nOK: Punto medio actualizado\r\n");
+		snprintf(buffer, sizeof(buffer), "PM=%u C\r\n", punto_medio);
+		uart_print(buffer);
+		uart_print("Rangos recalculados automaticamente.\r\n");
+		uart_print("Sensado reanudado.\r\n\r\n");
+
+		lcd_clear_safe();
+		twi_lcd_cmd(0x80);
+		twi_lcd_msg("PM actualizado  ");
+
+		snprintf(buffer, sizeof(buffer), "PM:%u C          ", punto_medio);
+		twi_lcd_cmd(0xC0);
+		twi_lcd_msg(buffer);
+
+		return;
+	}
+
+	// 'P': entrar al cambio de PM
+	if (buffer[0] == 'P')
+	{
+		cli();
+
+		// La ISR ya garantizo exactamente una P; se resetea el estado de recepcion para la proxima linea.
+		cmd_p_cnt = 0;
+		cmd_idx   = 0;
+		memset((void *)cmd_buf, 0, sizeof(cmd_buf));
+
+		esperando_pm = 1;
+		flag_medir   = 0;
+
+		sei();
+
+		uart_print("\r\n=== CAMBIO DE PUNTO MEDIO ===\r\n");
+		uart_print("Sensado pausado.\r\n");
+		uart_print("Ingrese nuevo PM (10 a 25 C): ");
+
+		lcd_clear_safe();
+		twi_lcd_cmd(0x80);
+		twi_lcd_msg("Cambiar PM      ");
+
+		twi_lcd_cmd(0xC0);
+		twi_lcd_msg("Sensado pausado ");
+
+		return;
+	}
+}
+
+
