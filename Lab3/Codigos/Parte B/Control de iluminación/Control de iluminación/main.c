@@ -402,3 +402,37 @@ void MOTOR_stop(void)
 	PORTD &= ~(1 << MOTOR_IN1);
 	PORTD &= ~(1 << MOTOR_IN2);
 }
+
+// CALCULO PWM
+
+uint8_t calcular_PWM(uint16_t error_abs)
+{
+	uint16_t pwm;
+
+	// Escalado aproximado:
+	// error 0-1023 -> PWM 0-255
+	pwm = error_abs / 4;
+
+	if (pwm < PWM_MIN)
+	{
+		pwm = PWM_MIN;
+	}
+
+	if (pwm > PWM_MAX)
+	{
+		pwm = PWM_MAX;
+	}
+
+	return (uint8_t)pwm;
+}
+
+// MAIN
+int main(void)
+{
+	uint16_t ldr;
+	uint16_t posicion;
+
+	int16_t error;
+	uint16_t error_abs;
+
+	uint8_t pwm = 0;
