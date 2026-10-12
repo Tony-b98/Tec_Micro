@@ -342,3 +342,39 @@ static void cargar(void) {
                 r->maximo > 1023) ok=0;
         }
     }
+  if (!ok) memset(&cal,0,sizeof cal);
+  }
+  static void ayuda(void) {
+	  char msg[64];
+	  uart_puts("\r\n=== CLASIFICADOR 4 PLASTICOS / ADC REAL ===\r\n");
+	  for (uint8_t i=0; i<N_COLORES; ++i) {
+		  snprintf(msg,sizeof msg,"%u: calibrar %-8s | servo %u grados\r\n",
+		  (unsigned)(i+1),COLORES[i].nombre,(unsigned)ANGULOS[i]);
+		  uart_puts(msg);
+	  }
+	  uart_puts("Colocar la muestra ANTES de pulsar su numero.\r\n"
+	  "m: medir | p: patrones/rangos | h: ayuda | x: borrar\r\n"
+	  "a: lectura ADC | t: prueba WS2812\r\n"
+	  "Esperar el fin de cada operacion antes de enviar otra tecla.\r\n");
+	  #if SERVO_RECORRIDO_GRADOS == 180
+	  uart_puts("Servo: 180 grados, usar escala SEMICIRCULAR.\r\n");
+	  #else
+	  uart_puts("Servo: requiere control POSICIONAL de 360 grados.\r\n");
+	  #endif
+  }
+  static void listar(void) {
+	  char msg[80];
+	  for (uint8_t i=0; i<N_COLORES; ++i) {
+		  snprintf(msg,sizeof msg,"\r\n%u %s: %s\r\n",(unsigned)(i+1),
+		  COLORES[i].nombre,(cal.validos & (1 << i)) ? "CALIBRADO" : "SIN CALIBRAR");
+		  uart_puts(msg);
+		  if (!(cal.validos & (1 << i))) continue;
+		  for (uint8_t j=0; j<N_COLORES; ++j) {
+			  const rango_t *r=&cal.color[i][j];
+			  snprintf(msg,sizeof msg,"  Luz %-8s Ref=%u Rango=[%u,%u]\r\n",
+			  COLORES[j].nombre,(unsigned)r->referencia,
+			  (unsigned)r->minimo,(unsigned)r->maximo);
+			  uart_puts(msg);
+		  }
+	  }
+  }
