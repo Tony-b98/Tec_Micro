@@ -43,4 +43,4 @@
 !*.drawio
 
 # El propio gitignore
-!.gitignore
+!.gitignore*.atsln
