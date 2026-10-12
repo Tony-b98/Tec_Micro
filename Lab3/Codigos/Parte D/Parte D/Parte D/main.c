@@ -120,3 +120,97 @@
 #define N_C7     96
 
 #endif
+
+// PROTOTIPOS
+#ifndef TIEMPO_H
+#define TIEMPO_H
+void     iniciar_reloj(void);
+uint32_t millis(void);
+#endif
+#ifndef SONIDO_H
+#define SONIDO_H
+#define VOZ_MELODIA  0   // buzzer 1, Timer1
+#define VOZ_BAJO     1   // buzzer 2, Timer2
+void        iniciar_buzzers(void);
+void        tocar_nota(uint8_t voz, uint8_t nota);
+void        apagar_buzzers(void);
+uint16_t    frecuencia_nota(uint8_t nota);
+void        nombre_nota(uint8_t nota, char *buf);
+#endif
+
+#ifndef TECLADO_H
+#define TECLADO_H
+void    iniciar_botones(void);
+uint8_t leer_botones(void);
+uint8_t botones_apretados(void);
+#endif
+
+#ifndef LCD_H
+#define LCD_H
+void lcd_init(void);
+void lcd_limpiar(void);
+void lcd_cursor(uint8_t fila, uint8_t col);
+void lcd_letra(char c);
+void lcd_escribir(const char *s);
+void lcd_escribir_P(const char *s);
+void lcd_fila(uint8_t fila, const char *s);
+#endif
+
+#ifndef UART_H
+#define UART_H
+void    uart_init(void);
+void    uart_enviar(char c);
+void    uart_print(const char *s);
+void    uart_print_P(const char *s);
+void    uart_print_num(uint16_t n);
+uint8_t uart_leer_linea(char *buf, uint8_t max);
+#endif
+
+#ifndef CANCIONES_H
+#define CANCIONES_H
+
+typedef struct {
+	uint8_t mel;   // nota MIDI, SIL o MANT
+	uint8_t bajo;
+	uint8_t dur;   // en unidades de ms_unidad
+} paso_t;
+
+typedef struct {
+	const char   *nombre;
+	const paso_t *pasos;
+	uint16_t      cantidad;
+	uint8_t       ms_unidad;   // ms por unidad de duracion
+} cancion_t;
+
+#define CANT_CANCIONES 3
+
+extern const cancion_t canciones[CANT_CANCIONES] PROGMEM;
+#endif
+
+#ifndef REPRODUCTOR_H
+#define REPRODUCTOR_H
+
+void    empezar_cancion(uint8_t indice);
+void    parar_cancion(void);
+uint8_t actualizar_cancion(void);
+uint8_t nota_actual(void);
+uint8_t progreso_cancion(uint8_t escala);
+void    nombre_cancion(uint8_t indice, char *buf, uint8_t max);
+
+#endif
+
+// TIEMPO
+static volatile uint32_t ms_contador = 0;
+
+ISR(TIMER0_COMPA_vect)
+{
+	ms_contador++;
+}
+
+void iniciar_reloj(void)
+{
+	TCCR0A = (1 << WGM01);
+	TCCR0B = (1 << CS01) | (1 << CS00);
+	OCR0A  = (uint8_t)(F_CPU / 64UL / 1000UL - 1);
+	TIMSK0 = (1 << OCIE0A);
+}
