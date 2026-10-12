@@ -436,3 +436,28 @@ int main(void)
 	uint16_t error_abs;
 
 	uint8_t pwm = 0;
+	// 0 = parado
+	// 1 = abriendo
+	// 2 = cerrando
+	uint8_t estado = 0;
+
+	ADC_init();
+	UART_init();
+	MOTOR_init();
+	PWM_init();
+
+	sei();
+
+	UART_send_string("\r\n");
+	UART_send_string(" CONTROL DE ILUMINACION\r\n");
+	
+	UART_send_string("Setpoint inicial: ");
+	UART_send_number(setpoint);
+	UART_send_string("\r\n");
+
+	UART_send_string("Ingrese SP entre 0 y 1023\r\n");
+	UART_send_string("Ejemplo: 500 + ENTER\r\n\r\n");
+
+
+		
+	
