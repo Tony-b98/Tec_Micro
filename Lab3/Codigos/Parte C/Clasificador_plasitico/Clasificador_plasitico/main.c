@@ -120,3 +120,50 @@ static void reportar(void);
 static void mostrar_pagina(void);
 static void diagnostico_adc(void);
 static void prueba_ws2812(void);
+
+// IMPLEMENTACION DE FUNCIONES
+
+static void uart_putc(char c) {
+	while (!(UCSR0A & (1 << UDRE0))) {}
+	UDR0 = c;
+}
+static void uart_puts(const char *s) {
+	while (*s) uart_putc(*s++);
+}
+
+static void uart_init(void) {
+	UCSR0A = 0; UBRR0 = 103;
+	UCSR0B = (1 << TXEN0) | (1 << RXEN0) | (1 << RXCIE0);
+	UCSR0C = (1 << UCSZ01) | (1 << UCSZ00);
+}
+ISR(USART_RX_vect) {
+	char c = UDR0;
+	if (!ocupado && !pendiente &&
+	((c >= '1' && c <= '4') || c=='m' || c=='M' ||
+	c=='p' || c=='P' || c=='h' || c=='H' || c=='x' || c=='X' ||
+	c=='a' || c=='A' || c=='t' || c=='T')) {
+		comando = c; pendiente = 1;
+	}
+}
+static char tomar_comando(void) {
+	char c = 0;
+	ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+		if (pendiente) { c = comando; pendiente = 0; ocupado = 1; }
+	}
+	return c;
+}
+
+static void lcd_nibble_inicio(uint8_t nibble) {
+	uint8_t dato = (nibble & 0xF0) | 0x08;
+	PCF8574_write(dato);
+	_delay_us(2);
+	PCF8574_write(dato | 0x04);
+	_delay_us(5);
+	PCF8574_write(dato);
+	_delay_us(100);
+}
+
+static void lcd_clear_safe(void) {
+	twi_lcd_clear();
+	_delay_ms(3);
+}
