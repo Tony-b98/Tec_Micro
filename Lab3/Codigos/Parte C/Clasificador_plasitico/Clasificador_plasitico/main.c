@@ -221,3 +221,124 @@ static uint16_t adc_promedio(void) {
 	}
 	return (uint16_t)(suma / ADC_PROM);
 }
+/* SALIDA DE LUZ: dos implementaciones intercambiables.
+ * Todo el programa solo llama a ws_show() y ws_apagar().
+ */ 
+#if MODO_RGB
+/* MODO PRUEBA: LED RGB de 4 patas, CATTODO COMUN */
+static void ws_show(uint8_t r, uint8_t g, uint8_t b) {
+    uint8_t v = 0;
+    if (r) v |= BIT_R;
+    if (g) v |= BIT_G;
+    if (b) v |= BIT_B;
+    PORTD = (PORTD & ~RGB_MASK) | v;   /* conserva PD0/PD1 de la UART */
+}
+static void ws_apagar(void) { ws_show(0, 0, 0); }
+
+#else
+/*MODO LABORATORIO: WS2812 ORIGINAL*/
+#if N_LEDS < 1 || N_LEDS > 85
+#error N_LEDS debe estar entre 1 y 85
+#endif
+#define WS_HEAD "out 0x0b, r20\n\t" \
+                "nop\n\tnop\n\tnop\n\t" \
+                "sbrs r19, 7\n\t" \
+                "out 0x0b, r18\n\t" \
+                "nop\n\tnop\n\tnop\n\tnop\n\t" \
+                "out 0x0b, r18\n\t"
+#define WS_FULL WS_HEAD "lsl r19\n\t" \
+                "nop\n\tnop\n\tnop\n\tnop\n\t" \
+                "nop\n\tnop\n\tnop\n\tnop\n\t"
+
+/* Funcion en ensamblador definida en este MISMO main.c.*/
+__asm__(
+    ".text\n"
+    ".global ws_send_frame\n"
+    ".type ws_send_frame, @function\n"
+    "ws_send_frame:\n\t"
+    "movw r30, r24\n\t"
+    "tst r22\n\t"
+    "brne 3f\n\t"
+    "ret\n\t"
+    "3:\n\t"
+    "ld r19, Z+\n\t"
+    "1:\n\t"
+    WS_FULL WS_FULL WS_FULL WS_FULL WS_FULL WS_FULL WS_FULL
+    WS_HEAD
+    "dec r22\n\t"
+    "breq 2f\n\t"
+    "ld r19, Z+\n\t"
+    "nop\n\tnop\n\tnop\n\t"
+    "rjmp 1b\n\t"
+    "2:\n\t"
+    "ret\n"
+    ".size ws_send_frame, .-ws_send_frame\n"
+);
+
+static void ws_show(uint8_t r, uint8_t g, uint8_t b) {
+#if WS2812_HABILITADA
+    uint8_t frame[N_LEDS * 3];
+    for (uint8_t i = 0; i < N_LEDS; ++i) {
+        frame[3*i] = g; frame[3*i+1] = r; frame[3*i+2] = b;
+    }
+    uint8_t saved = SREG;
+    cli();
+    uint8_t hi = PORTD | WS_BIT, lo = PORTD & ~WS_BIT;
+    ws_send_frame(frame, (uint8_t)sizeof(frame), hi, lo);
+    SREG = saved;
+    _delay_us(300);
+#else
+    (void)r; (void)g; (void)b;
+#endif
+}
+static void ws_apagar(void) { ws_show(0, 0, 0); }
+#endif /* MODO_RGB */
+
+static void luz_color(uint8_t i) {
+    ws_show(COLORES[i].r, COLORES[i].g, COLORES[i].b);
+}
+static void servo_angulo(uint16_t grados) {
+    if (grados > SERVO_RECORRIDO_GRADOS) grados = SERVO_RECORRIDO_GRADOS;
+    uint32_t us = SERVO_PULSO_MIN_US +
+        (SERVO_PULSO_MAX_US-SERVO_PULSO_MIN_US)*grados/SERVO_RECORRIDO_GRADOS;
+    /* 16MHz/64=250kHz: cada tick dura 4us. */
+    OCR1A = (uint16_t)((us+2)/4);
+    angulo_aplicado = grados;
+}
+static void servo_init(void) {
+    DDRB |= (1 << PB1);
+    TCCR1A = (1 << COM1A1) | (1 << WGM11);
+    TCCR1B = (1 << WGM13) | (1 << WGM12) | (1 << CS11) | (1 << CS10);
+    ICR1 = 4999;
+    servo_angulo(SERVO_RECORRIDO_GRADOS/2);
+}
+static uint16_t hash_bytes(const void *p, uint16_t n) {
+    const uint8_t *b = p;
+    uint16_t h = 0xA561;
+    while (n--) h = (uint16_t)((h << 5) | (h >> 11)) ^ *b++;
+    return h;
+}
+static uint16_t firma_config(void) {
+    return hash_bytes(COLORES,sizeof COLORES) ^ (uint16_t)N_LEDS ^
+           ((uint16_t)MARGEN_ADC << 8);
+}
+static void guardar(void) {
+    cal.magic = EEPROM_MAGIC; cal.version = EEPROM_VERSION;
+    cal.firma = firma_config();
+    cal.checksum = hash_bytes(&cal,offsetof(calibracion_t,checksum));
+    eeprom_update_block(&cal,&cal_eeprom,sizeof cal);
+}
+static void cargar(void) {
+    uint8_t ok = 1;
+    eeprom_read_block(&cal,&cal_eeprom,sizeof cal);
+    if (cal.magic != EEPROM_MAGIC || cal.version != EEPROM_VERSION ||
+        cal.firma != firma_config() || (cal.validos & 0xF0) ||
+        cal.checksum != hash_bytes(&cal,offsetof(calibracion_t,checksum))) ok=0;
+    for (uint8_t i=0; i<N_COLORES && ok; ++i) {
+        if (!(cal.validos & (1 << i))) continue;
+        for (uint8_t j=0; j<N_COLORES; ++j) {
+            const rango_t *r = &cal.color[i][j];
+            if (r->minimo > r->referencia || r->referencia > r->maximo ||
+                r->maximo > 1023) ok=0;
+        }
+    }
