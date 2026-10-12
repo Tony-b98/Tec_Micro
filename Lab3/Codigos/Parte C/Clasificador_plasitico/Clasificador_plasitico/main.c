@@ -40,3 +40,83 @@
 #if SERVO_RECORRIDO_GRADOS != 180 && SERVO_RECORRIDO_GRADOS != 360
 #error Usar 180 o 360 grados de recorrido POSICIONAL
 #endif
+
+// Orden de derecha a izquierda del semicirculo.
+typedef struct { char nombre[9]; uint8_t r,g,b; } color_t;
+static const color_t COLORES[N_COLORES] = {
+	{"NARANJA", 255, 100,   0},
+	{"BLANCO",  255, 255, 255},
+	{"VIOLETA", 150,   0, 255},
+	{"MARRON",  120,  55,  20}
+};
+// SG90 posicional, un destino por color.
+static const uint16_t ANGULOS[N_COLORES] = {22, 67, 112, 157};
+
+// Calibracion guardada en EEPROM
+typedef struct { uint16_t referencia, minimo, maximo; } rango_t;
+typedef struct {
+	uint16_t magic;
+	uint8_t version, validos;
+	uint16_t firma;
+	rango_t color[N_COLORES][N_COLORES]; // [plastico][iluminacion]
+	uint16_t checksum;
+} calibracion_t;
+static calibracion_t cal;
+static calibracion_t EEMEM cal_eeprom;
+static uint16_t lectura[N_COLORES];
+static uint16_t angulo_aplicado;
+static int8_t detectado = -1; // -1 = fuera de rango, -2 = ambiguo
+static uint8_t hay_resultado, pagina;
+static volatile uint8_t ocupado, pendiente;
+static volatile char comando;
+typedef enum {REPOSO, MIDIENDO, CLASIFICANDO, MOSTRANDO} estado_t;
+static estado_t estado = REPOSO;
+
+// PROTOTIPOS
+
+// UART
+static void uart_putc(char c);
+static void uart_puts(const char *s);
+static void uart_init(void);
+static char tomar_comando(void);
+
+// LCD
+static void lcd_nibble_inicio(uint8_t nibble);
+static void lcd_inicio_corregido(void);
+static void lcd_clear_safe(void);
+static void lcd_linea(uint8_t fila, const char *texto);
+static void pantalla(const char *a, const char *b);
+
+// ADC
+static void adc_init(void);
+static uint16_t adc_promedio(void);
+
+// WS2812
+#if !MODO_RGB
+extern void ws_send_frame(const uint8_t *frame, uint8_t cantidad,
+uint8_t alto, uint8_t bajo);
+#endif
+static void ws_show(uint8_t r, uint8_t g, uint8_t b);
+static void ws_apagar(void);
+static void luz_color(uint8_t i);
+
+// Servo
+static void servo_angulo(uint16_t grados);
+static void servo_init(void);
+
+// EEPROM
+static uint16_t hash_bytes(const void *p, uint16_t n);
+static uint16_t firma_config(void);
+static void guardar(void);
+static void cargar(void);
+
+// Menu y clasificacion
+static void ayuda(void);
+static void listar(void);
+static void barrido(uint8_t numero_cal);
+static void calibrar(uint8_t i);
+static int8_t clasificar(const calibracion_t *c, const uint16_t v[N_COLORES]);
+static void reportar(void);
+static void mostrar_pagina(void);
+static void diagnostico_adc(void);
+static void prueba_ws2812(void);
