@@ -167,3 +167,57 @@ static void lcd_clear_safe(void) {
 	twi_lcd_clear();
 	_delay_ms(3);
 }
+static void lcd_inicio_corregido(void) {
+	_delay_ms(100);               /* Estabilizacion de alimentacion */
+	twi_init();
+	_delay_ms(50);
+	
+	lcd_nibble_inicio(0x30);
+	_delay_ms(5);
+	lcd_nibble_inicio(0x30);
+	_delay_us(200);
+	lcd_nibble_inicio(0x30);
+	_delay_us(200);
+	lcd_nibble_inicio(0x20);      /* Pasar a modo 4 bits */
+	_delay_us(200);
+
+	twi_lcd_cmd(0x28);            /* 4 bits, 2 lineas, matriz 5x8 */
+	_delay_ms(2);
+	twi_lcd_cmd(0x08);            /* Display apagado */
+	_delay_ms(2);
+	lcd_clear_safe();
+	twi_lcd_cmd(0x06);            /* Incrementar cursor sin desplazar */
+	_delay_ms(2);
+	twi_lcd_cmd(0x0C);            /* Display encendido sin cursor */
+	_delay_ms(2);
+	twi_lcd_cmd(0x80);            /* Primera fila, columna 1 */
+	_delay_ms(2);
+}
+
+static void lcd_linea(uint8_t fila, const char *texto) {
+	char linea[17];
+	uint8_t n = 0;
+	while (n < 16 && texto[n]) { linea[n] = texto[n]; ++n; }
+	while (n < 16) linea[n++] = ' ';
+	linea[16] = 0;
+	twi_lcd_cmd(fila ? 0xC0 : 0x80);
+	twi_lcd_msg(linea);
+}
+static void pantalla(const char *a, const char *b) {
+	lcd_linea(0,a); lcd_linea(1,b);
+}
+static void adc_init(void) {
+	DDRC &= ~(1 << PC0); PORTC &= ~(1 << PC0);
+	DIDR0 |= (1 << ADC0D);
+	ADMUX = (1 << REFS0);
+	ADCSRA = (1 << ADEN) | (1 << ADPS2) | (1 << ADPS1) | (1 << ADPS0);
+}
+static uint16_t adc_promedio(void) {
+	uint32_t suma = 0;
+	for (uint8_t i=0; i<ADC_PROM; ++i) {
+		ADCSRA |= (1 << ADSC);
+		while (ADCSRA & (1 << ADSC)) {}
+		suma += ADC;
+	}
+	return (uint16_t)(suma / ADC_PROM);
+}

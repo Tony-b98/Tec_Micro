@@ -528,3 +528,53 @@ else
 	estado = 0;
 }
 
+// 5. INFORMAR POR UART
+UART_send_string("SP: ");
+UART_send_number(setpoint);
+
+UART_send_string(" | LDR: ");
+UART_send_number(ldr);
+
+UART_send_string(" | Pos: ");
+UART_send_number(posicion);
+
+UART_send_string(" | PWM: ");
+UART_send_number(pwm);
+
+UART_send_string(" | Estado: ");
+
+if (estado == 1)
+{
+	UART_send_string("ABRIENDO");
+}
+else if (estado == 2)
+{
+	UART_send_string("CERRANDO");
+}
+else
+{
+	// Indicar por qué está detenido
+	if (posicion >= POS_MAX &&
+	error > ZONA_MUERTA)
+	{
+		UART_send_string("PARADO - MAX APERTURA");
+	}
+	else if (posicion <= POS_MIN &&
+	error < -ZONA_MUERTA)
+	{
+		UART_send_string("PARADO - MAX CIERRE");
+	}
+	else
+	{
+		UART_send_string("PARADO - SETPOINT");
+	}
+}
+
+UART_send_string("\r\n");
+
+_delay_ms(500);
+}
+}
+
+
+
