@@ -507,4 +507,24 @@ int main(void)
 			else
 			{
 		
-	
+	error_abs = (uint16_t)(-error);
+
+	pwm = calcular_PWM(error_abs);
+
+	MOTOR_cerrar();
+	PWM_set(pwm);
+
+	estado = 2;
+}
+}
+
+else
+{
+	// La iluminación está suficientemente
+	// cerca del setpoint
+	MOTOR_stop();
+
+	pwm = 0;
+	estado = 0;
+}
+
