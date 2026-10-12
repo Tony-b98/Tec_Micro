@@ -458,6 +458,53 @@ int main(void)
 	UART_send_string("Ingrese SP entre 0 y 1023\r\n");
 	UART_send_string("Ejemplo: 500 + ENTER\r\n\r\n");
 
+	while (1)
+	{
+		procesar_setpoint();
 
+		ldr = ADC_read(0);       // A0 = LDR
+		posicion = ADC_read(1);  // A1 = Potenciometro
+
+		error =
+		(int16_t)setpoint -
+		(int16_t)ldr;
+
+		// Falta luz: abrir persiana.
+		if (error > ZONA_MUERTA)
+		{
+			// Ya esta totalmente abierta.
+			if (posicion >= POS_MAX)
+			{
+				MOTOR_stop();
+
+				pwm = 0;
+				estado = 0;
+			}
+			else
+			{
+				error_abs = (uint16_t)error;
+
+				pwm = calcular_PWM(error_abs);
+
+				MOTOR_abrir();
+				PWM_set(pwm);
+
+				estado = 1;
+			}
+		}
+
+		// Sobra luz: cerrar persiana.
+		else if (error < -ZONA_MUERTA)
+		{
+			// Ya esta totalmente cerrada.
+			if (posicion <= POS_MIN)
+			{
+				MOTOR_stop();
+
+				pwm = 0;
+				estado = 0;
+			}
+			else
+			{
 		
 	
