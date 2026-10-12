@@ -14,7 +14,6 @@
 
 # Proyectos Microchip Studio
 !*.cproj
-!*.atsln
 
 # Archivos HEX para programar el micro
 !*.hex
@@ -43,4 +42,7 @@
 !*.drawio
 
 # El propio gitignore
-!.gitignore*.atsln
+!.gitignore
+
+# Archivos de solución de Microchip Studio
+*.atsln
