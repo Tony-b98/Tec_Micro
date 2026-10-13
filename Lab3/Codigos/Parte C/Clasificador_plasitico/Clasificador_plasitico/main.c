@@ -492,3 +492,30 @@ static void mostrar_pagina(void) {
     }
     pantalla(a,b);
 }
+
+// DIAGNOSTICOS PARA EL MONTAJE FISICO
+static void diagnostico_adc(void) {
+	char msg[48];
+	uint16_t valor = adc_promedio();
+	snprintf(msg, sizeof msg, "ADC0/PC0 = %u (0..1023)\r\n", (unsigned)valor);
+	uart_puts(msg);
+	char linea[17];
+	snprintf(linea, sizeof linea, "ADC0: %4u", (unsigned)valor);
+	pantalla("Prueba fotocelda", linea);
+}
+
+static void prueba_ws2812(void) {
+	#if MODO_RGB
+	uart_puts("Prueba LED RGB: NARANJA, BLANCO, VIOLETA, MARRON\r\n");
+	#else
+	uart_puts("Prueba WS2812: NARANJA, BLANCO, VIOLETA, MARRON\r\n");
+	#endif
+	for (uint8_t i = 0; i < N_COLORES; ++i) {
+		luz_color(i);
+		pantalla("Prueba iluminac", COLORES[i].nombre);
+		_delay_ms(900);
+	}
+	ws_apagar();
+	pantalla("Prueba terminada", "LED apagado");
+}
+
