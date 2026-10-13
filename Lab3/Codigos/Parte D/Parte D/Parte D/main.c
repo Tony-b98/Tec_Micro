@@ -786,3 +786,183 @@ static void pantalla_cancion(uint8_t nota, uint8_t prog)
 	l[i] = '\0';
 	lcd_fila(1, l);
 }
+
+// Transicion -> PIANO
+static void modo_piano(void)
+{
+	estado = EST_PIANO;
+	teclas_previas = 0;
+	apagar_buzzers();
+	pantalla_piano();
+	uart_print_P(PSTR("> Modo PIANO\r\n"));
+}
+
+// Transicion -> CANCION
+static void modo_cancion(uint8_t i)
+{
+	char nombre[17];
+	estado = EST_CANCION;
+	cancion_actual = i;
+	nombre_cancion(i, nombre, sizeof(nombre));
+	lcd_fila(0, nombre);
+	empezar_cancion(i);
+	pantalla_cancion(nota_actual(), 0);
+	uart_print_P(PSTR("> Reproduciendo C"));
+	uart_enviar((char)('1' + i));
+	uart_print_P(PSTR(": "));
+	uart_print(nombre);
+	uart_print_P(PSTR("\r\n"));
+}
+
+// ESTADO PIANO: suena la nota del pulsador apretado
+static void loop_piano(void)
+{
+	uint8_t teclas = botones_apretados();
+	if (teclas == teclas_previas) return;
+	teclas_previas = teclas;
+
+	if (teclas == 0) {
+		apagar_buzzers();
+		lcd_fila(1, "Toque una tecla");
+		return;
+	}
+
+	// Con dos teclas: melodia la mas aguda, bajo la mas grave.
+	int8_t alta = 7, baja = 0;
+	while (!(teclas & (1 << alta))) alta--;
+	while (!(teclas & (1 << baja))) baja++;
+
+	uint8_t mel  = pgm_read_byte(&notas_piano[alta]);
+	uint8_t bajo = pgm_read_byte(&notas_piano[baja]);
+	uint8_t acorde = (alta != baja);
+	// Una sola tecla: el bajo suena una octava abajo.
+	if (!acorde) bajo = (uint8_t)(mel - 12);
+
+	tocar_nota(VOZ_MELODIA, mel);
+	tocar_nota(VOZ_BAJO, bajo);
+	pantalla_nota(mel, bajo, acorde);
+
+	char n[6];
+	uart_print_P(PSTR("Tecla: "));
+	nombre_nota(mel, n);
+	uart_print(n);
+	uart_print_P(PSTR(" ("));
+	uart_print_num(frecuencia_nota(mel));
+	uart_print_P(PSTR(" Hz)"));
+	if (acorde) {
+		uart_print_P(PSTR(" + "));
+		nombre_nota(bajo, n);
+		uart_print(n);
+	}
+	uart_print_P(PSTR("\r\n"));
+}
+
+// ESTADO CANCION: reproduce la cancion, los pulsadores se ignoran
+static void loop_cancion(void)
+{
+	static uint8_t nota_lcd = 0xFE, prog_lcd = 0xFE;   // fuerza el primer refresco
+
+	// Transicion CANCION -> PIANO al terminar
+	if (!actualizar_cancion()) {
+		uart_print_P(PSTR("> Fin de la cancion\r\n"));
+		nota_lcd = prog_lcd = 0xFE;
+		modo_piano();
+		return;
+	}
+	uint8_t n = nota_actual();
+	uint8_t p = progreso_cancion(8);
+	if (n != nota_lcd || p != prog_lcd) {
+		nota_lcd = n;
+		prog_lcd = p;
+		pantalla_cancion(n, p);
+	}
+}
+
+// COMANDOS UART
+static void ayuda(void)
+{
+	char nombre[17];
+	uart_print_P(PSTR("\r\nComandos:\r\n"));
+	for (uint8_t i = 0; i < CANT_CANCIONES; i++) {
+		nombre_cancion(i, nombre, sizeof(nombre));
+		uart_print_P(PSTR("  C"));
+		uart_enviar((char)('1' + i));
+		uart_print_P(PSTR("  -> "));
+		uart_print(nombre);
+		uart_print_P(PSTR("\r\n"));
+	}
+	uart_print_P(PSTR("  S   -> detener y volver al modo piano\r\n"
+	"  ?   -> esta ayuda\r\n\r\n"));
+}
+
+static void leer_comando(char *cmd)
+{
+	// Comando a mayusculas y sin espacios.
+	uint8_t j = 0;
+	for (uint8_t i = 0; cmd[i]; i++) {
+		char ch = cmd[i];
+		if (ch == ' ' || ch == '\t') continue;
+		if (ch >= 'a' && ch <= 'z') ch = (char)(ch - 32);
+		cmd[j++] = ch;
+	}
+	cmd[j] = '\0';
+
+	// PIANO o CANCION -> CANCION
+	if (cmd[0] == 'C' && cmd[1] >= '1' && cmd[1] < '1' + CANT_CANCIONES && cmd[2] == '\0') {
+		modo_cancion((uint8_t)(cmd[1] - '1'));
+		} else if (strcmp(cmd, "S") == 0 || strcmp(cmd, "STOP") == 0) {
+		// Transicion CANCION -> PIANO
+		if (estado == EST_CANCION) {
+			parar_cancion();
+			uart_print_P(PSTR("> Cancion detenida\r\n"));
+			modo_piano();
+			} else {
+			uart_print_P(PSTR("> Ya esta en modo piano\r\n"));
+		}
+		} else if (strcmp(cmd, "?") == 0 || strcmp(cmd, "AYUDA") == 0) {
+		ayuda();
+		} else {
+		uart_print_P(PSTR("> Comando desconocido: "));
+		uart_print(cmd);
+		uart_print_P(PSTR(" (envie ? para ayuda)\r\n"));
+	}
+}
+
+// MAIN
+int main(void)
+{
+	iniciar_reloj();
+	iniciar_buzzers();
+	iniciar_botones();
+	uart_init();
+	lcd_init();
+	sei();
+
+	lcd_fila(0, "Piano ATmega328P");
+	lcd_fila(1, "  UTEC - Lab 3");
+	uart_print_P(PSTR("\r\n=== Piano Electronico ATmega328P ===\r\n"));
+	ayuda();
+
+	uint32_t t = millis();
+	while (millis() - t < 1500) { }
+	modo_piano();
+
+	uint32_t t_teclado = millis();
+	char cmd[16];
+
+	// LOOP
+	for (;;) {
+		// La UART se atiende en cualquier estado.
+		if (uart_leer_linea(cmd, sizeof(cmd))) leer_comando(cmd);
+
+		if (millis() - t_teclado >= TECLADO_PERIODO_MS) {
+			t_teclado += TECLADO_PERIODO_MS;
+			leer_botones();
+		}
+
+		switch (estado) {
+			case EST_PIANO:   loop_piano();   break;
+			case EST_CANCION: loop_cancion(); break;
+		}
+	}
+}
