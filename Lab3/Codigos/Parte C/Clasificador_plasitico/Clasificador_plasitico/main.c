@@ -414,3 +414,81 @@ static void calibrar(uint8_t i) {
             if (v>maximo[j]) maximo[j]=v;
         }
     }
+ for (uint8_t j=0; j<N_COLORES; ++j) {
+        rango_t *r=&cal.color[i][j];
+        r->referencia=(uint16_t)(suma[j]/BARRIDOS_CAL);
+        r->minimo=minimo[j]>MARGEN_ADC ? minimo[j]-MARGEN_ADC : 0;
+        r->maximo=maximo[j]<1023-MARGEN_ADC ? maximo[j]+MARGEN_ADC : 1023;
+    }
+    cal.validos |= (1 << i);
+    guardar();
+    ws_apagar();
+    pantalla("Calibracion OK",COLORES[i].nombre);
+    uart_puts("Calibracion guardada en EEPROM.\r\n");
+    listar();
+}
+
+// Funcion pura: exige coincidencia con los cuatro intervalos.
+// Rechaza si no coincide ninguno o si coincide mas de un plastico.
+//Evita asignar siempre el color mas cercano a muestras desconocidas.
+
+static int8_t clasificar(const calibracion_t *c, const uint16_t v[N_COLORES]) {
+    int8_t elegido=-1;
+    for (uint8_t i=0; i<N_COLORES; ++i) {
+        if (!(c->validos & (1 << i))) continue;
+        uint8_t coincide=1;
+        for (uint8_t j=0; j<N_COLORES; ++j) {
+            if (v[j]<c->color[i][j].minimo || v[j]>c->color[i][j].maximo)
+                coincide=0;
+        }
+        if (coincide) {
+            if (elegido>=0) return -2;
+            elegido=(int8_t)i;
+        }
+    }
+    return elegido;
+}
+
+static void reportar(void) {
+    char msg[96];
+    uart_puts("\r\n=== RESULTADO ===\r\n");
+    snprintf(msg,sizeof msg,"Color: %s\r\n",detectado>=0 ? COLORES[detectado].nombre :
+             (detectado==-2 ? "AMBIGUO" : "NO IDENTIFICADO"));
+    uart_puts(msg);
+    for (uint8_t j=0; j<N_COLORES; ++j) {
+        if (detectado>=0) {
+            const rango_t *r=&cal.color[detectado][j];
+            int16_t dif=(int16_t)lectura[j]-(int16_t)r->referencia;
+            snprintf(msg,sizeof msg,"Luz %s: ADC=%u Ref=%u Dif=%d Rango=[%u,%u]\r\n",
+                     COLORES[j].nombre,(unsigned)lectura[j],(unsigned)r->referencia,
+                     (int)dif,(unsigned)r->minimo,(unsigned)r->maximo);
+        } else {
+            snprintf(msg,sizeof msg,"Luz %s: ADC=%u Ref=N/A Dif=N/A\r\n",
+                     COLORES[j].nombre,(unsigned)lectura[j]);
+        }
+        uart_puts(msg);
+    }
+    snprintf(msg,sizeof msg,"Angulo ORDENADO: %u grados%s\r\n",(unsigned)angulo_aplicado,
+             detectado>=0 ? "" : " (conserva posicion anterior)");
+    uart_puts(msg);
+    if (detectado==-2) uart_puts("Rangos superpuestos: revisar muestras/calibracion.\r\n");
+}
+
+static void mostrar_pagina(void) {
+    char a[17],b[17];
+    if (pagina==0) {
+        if (detectado>=0) snprintf(a,sizeof a,"Color:%s",COLORES[detectado].nombre);
+        else strcpy(a,detectado==-2 ? "Color ambiguo" : "No identificado");
+        snprintf(b,sizeof b,"Angulo:%3u grad",(unsigned)angulo_aplicado);
+    } else {
+        uint8_t j=pagina-1;
+        /* 8 chars de nombre + ':' + 4 ADC = 13 columnas. */
+        snprintf(a,sizeof a,"%s:%4u",COLORES[j].nombre,(unsigned)lectura[j]);
+        if (detectado>=0) {
+            uint16_t ref=cal.color[detectado][j].referencia;
+            int16_t dif=(int16_t)lectura[j]-(int16_t)ref;
+            snprintf(b,sizeof b,"P:%4u D:%+5d",(unsigned)ref,(int)dif);
+        } else strcpy(b,"P:---- D:-----");
+    }
+    pantalla(a,b);
+}
