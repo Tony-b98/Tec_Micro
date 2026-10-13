@@ -378,3 +378,39 @@ static void cargar(void) {
 		  }
 	  }
   }
+/* Cada lectura queda asociada a la luz que estaba encendida al medir. */
+static void barrido(uint8_t numero_cal) {
+    char a[17],b[17];
+    for (uint8_t j=0; j<N_COLORES; ++j) {
+        if (numero_cal) snprintf(a,sizeof a,"Calibrando %u/%u",
+                    (unsigned)numero_cal,(unsigned)BARRIDOS_CAL);
+        else strcpy(a,"Midiendo...");
+        snprintf(b,sizeof b,"Luz:%s",COLORES[j].nombre);
+        pantalla(a,b);
+        luz_color(j);
+        _delay_ms(ESTABILIZACION_MS);
+        lectura[j]=adc_promedio();
+    }
+}
+/* Los intervalos se obtienen de varias mediciones del MISMO plastico.
+ * El margen amplifica min/max para absorber pequenas variaciones.
+ * En la calibracion se debe conservar la posicion y variar ligeramente
+ * la zona de la muestra si eso representa el uso real.
+ */
+static void calibrar(uint8_t i) {
+    uint32_t suma[N_COLORES]={0};
+    uint16_t minimo[N_COLORES]={1023,1023,1023,1023};
+    uint16_t maximo[N_COLORES]={0};
+    char msg[64];
+    hay_resultado=0;
+    snprintf(msg,sizeof msg,"\r\nCalibrando %s. Mantener muestra colocada.\r\n",COLORES[i].nombre);
+    uart_puts(msg);
+    for (uint8_t n=1; n<=BARRIDOS_CAL; ++n) {
+        barrido(n);
+        for (uint8_t j=0; j<N_COLORES; ++j) {
+            uint16_t v=lectura[j];
+            suma[j]+=v;
+            if (v<minimo[j]) minimo[j]=v;
+            if (v>maximo[j]) maximo[j]=v;
+        }
+    }
