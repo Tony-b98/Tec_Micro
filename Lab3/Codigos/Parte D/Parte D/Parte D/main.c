@@ -214,3 +214,72 @@ void iniciar_reloj(void)
 	OCR0A  = (uint8_t)(F_CPU / 64UL / 1000UL - 1);
 	TIMSK0 = (1 << OCIE0A);
 }
+uint32_t millis(void)
+{
+	uint32_t t;
+	ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+		t = ms_contador;
+	}
+	return t;
+}
+
+// SONIDO
+static const uint16_t tabla_frec[] PROGMEM = {
+	41,   44,   46,   49,   52,   55,   58,   62,   65,   69,   73,   78,
+	82,   87,   92,   98,  104,  110,  117,  123,  131,  139,  147,  156,
+	165,  175,  185,  196,  208,  220,  233,  247,  262,  277,  294,  311,
+	330,  349,  370,  392,  415,  440,  466,  494,  523,  554,  587,  622,
+	659,  698,  740,  784,  831,  880,  932,  988, 1047, 1109, 1175, 1245,
+	1319, 1397, 1480, 1568, 1661, 1760, 1865, 1976, 2093,
+};
+
+static const char nombres[12][5] PROGMEM = {
+	"Do", "Do#", "Re", "Re#", "Mi", "Fa", "Fa#", "Sol", "Sol#", "La", "La#", "Si"
+};
+
+// Prescalers de Timer2 en el orden de CS22..CS20 = 1..7.
+static const uint16_t t2_div[] PROGMEM = { 1, 8, 32, 64, 128, 256, 1024 };
+
+uint16_t frecuencia_nota(uint8_t nota)
+{
+	if (nota < NOTA_MIN || nota > NOTA_MAX) return 0;
+	return pgm_read_word(&tabla_frec[nota - NOTA_MIN]);
+}
+
+void nombre_nota(uint8_t nota, char *buf)
+{
+	if (nota == SIL || nota == MANT) { buf[0] = '-'; buf[1] = '\0'; return; }
+	strcpy_P(buf, nombres[nota % 12]);
+	uint8_t i = 0;
+	while (buf[i]) i++;
+	buf[i++] = (char)('0' + (nota / 12 - 1));
+	buf[i]   = '\0';
+}
+
+void iniciar_buzzers(void)
+{
+	BUZ1_DDR  |=  (1 << BUZ1_PIN);
+	BUZ2_DDR  |=  (1 << BUZ2_PIN);
+	BUZ1_PORT &= ~(1 << BUZ1_PIN);
+	BUZ2_PORT &= ~(1 << BUZ2_PIN);
+	TCCR1A = 0; TCCR1B = 0;
+	TCCR2A = 0; TCCR2B = 0;
+}
+
+// Toggle por hardware en OC1A: la onda sale sin usar el CPU.
+static void buzzer1(uint16_t f)
+{
+	if (f == 0) {
+		TCCR1A = 0;
+		TCCR1B = 0;
+		BUZ1_PORT &= ~(1 << BUZ1_PIN);
+		return;
+	}
+	uint16_t ocr = (uint16_t)((F_CPU / 16UL + f / 2) / f - 1);
+	// Se reinicia TCNT1 para que no pase de largo el nuevo TOP.
+	TCCR1B = 0;
+	OCR1A  = ocr;
+	TCNT1  = 0;
+	TCCR1A = (1 << COM1A0);
+	TCCR1B = (1 << WGM12) | (1 << CS11);
+}
