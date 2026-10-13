@@ -283,3 +283,200 @@ static void buzzer1(uint16_t f)
 	TCCR1A = (1 << COM1A0);
 	TCCR1B = (1 << WGM12) | (1 << CS11);
 }
+static void buzzer2(uint16_t f)
+{
+	if (f == 0) {
+		TCCR2A = 0;
+		TCCR2B = 0;
+		BUZ2_PORT &= ~(1 << BUZ2_PIN);
+		return;
+	}
+	// OCR2A es de 8 bits: se busca el prescaler mas chico que entre.
+	for (uint8_t i = 0; i < 7; i++) {
+		uint16_t n   = pgm_read_word(&t2_div[i]);
+		uint32_t ocr = (F_CPU / 2UL / n + f / 2) / f;
+		if (ocr >= 1 && ocr <= 256) {
+			TCCR2B = 0;
+			OCR2A  = (uint8_t)(ocr - 1);
+			TCNT2  = 0;
+			TCCR2A = (1 << COM2A0) | (1 << WGM21);
+			TCCR2B = (uint8_t)(i + 1);
+			return;
+		}
+	}
+	buzzer2(0);
+}
+
+void tocar_nota(uint8_t voz, uint8_t nota)
+{
+	uint16_t f = (nota == SIL) ? 0 : frecuencia_nota(nota);
+	if (voz == VOZ_MELODIA) buzzer1(f);
+	else                    buzzer2(f);
+}
+
+void apagar_buzzers(void)
+{
+	buzzer1(0);
+	buzzer2(0);
+}
+
+// ENTRADAS
+#define MASK_D  0xFC   // PD2..PD7
+#define MASK_B  ((1 << PB0) | (1 << PB4))   // D8 y D12
+
+static uint8_t estable   = 0;
+static uint8_t candidato = 0;
+static uint8_t cuenta    = 0;
+
+static uint8_t leer_pines(void)
+{
+	// Entradas activas en bajo, se invierten.
+	uint8_t d = (uint8_t)(~PIND);
+	uint8_t b = (uint8_t)(~PINB);
+	uint8_t m = (uint8_t)((d & MASK_D) >> 2);
+	if (b & (1 << PB0)) m |= (1 << 6);
+	if (b & (1 << PB4)) m |= (1 << 7);
+	return m;
+}
+
+void iniciar_botones(void)
+{
+	DDRD  &= (uint8_t)~MASK_D;
+	PORTD |= MASK_D;
+	DDRB  &= (uint8_t)~MASK_B;
+	PORTB |= MASK_B;
+}
+
+uint8_t leer_botones(void)
+{
+	uint8_t r = leer_pines();
+	// Antirrebote: el cambio se acepta tras TECLADO_MUESTRAS lecturas iguales.
+	if (r != candidato) {
+		candidato = r;
+		cuenta = 0;
+		return 0;
+	}
+	if (cuenta < TECLADO_MUESTRAS) cuenta++;
+	if (cuenta == TECLADO_MUESTRAS && estable != candidato) {
+		estable = candidato;
+		return 1;
+	}
+	return 0;
+}
+
+uint8_t botones_apretados(void)
+{
+	return estable;
+}
+
+// LCD
+static void lcd_pulso(void)
+{
+	LCD_E_PORT |=  (1 << LCD_E);
+	_delay_us(1);
+	LCD_E_PORT &= ~(1 << LCD_E);
+	_delay_us(1);
+}
+
+static void lcd_nibble(uint8_t n)
+{
+	// Read-modify-write para no pisar RS, que comparte PORTC.
+	LCD_DATA_PORT = (uint8_t)((LCD_DATA_PORT & 0xF0) | (n & 0x0F));
+	lcd_pulso();
+}
+
+static void lcd_byte(uint8_t b, uint8_t es_dato)
+{
+	if (es_dato) LCD_RS_PORT |=  (1 << LCD_RS);
+	else         LCD_RS_PORT &= ~(1 << LCD_RS);
+	lcd_nibble(b >> 4);
+	lcd_nibble(b);
+	_delay_us(45);
+}
+
+static void lcd_comando(uint8_t c)
+{
+	lcd_byte(c, 0);
+	// Clear y home tardan mas que el resto de las instrucciones.
+	if (c <= 0x03) _delay_ms(2);
+}
+
+void lcd_init(void)
+{
+	LCD_RS_DDR   |=  (1 << LCD_RS);
+	LCD_E_DDR    |=  (1 << LCD_E);
+	LCD_DATA_DDR |=  0x0F;
+	LCD_RS_PORT  &= ~(1 << LCD_RS);
+	LCD_E_PORT   &= ~(1 << LCD_E);
+
+	_delay_ms(50);
+
+	// Secuencia de inicializacion por instrucciones del HD44780.
+	lcd_nibble(0x03); _delay_ms(5);
+	lcd_nibble(0x03); _delay_us(150);
+	lcd_nibble(0x03); _delay_us(150);
+	lcd_nibble(0x02); _delay_us(150);
+
+	// 4 bits y 2 lineas, display ON sin cursor, incremento, clear.
+	lcd_comando(0x28);
+	lcd_comando(0x0C);
+	lcd_comando(0x06);
+	lcd_comando(0x01);
+}
+
+void lcd_limpiar(void)
+{
+	lcd_comando(0x01);
+}
+
+void lcd_cursor(uint8_t fila, uint8_t col)
+{
+	lcd_comando((uint8_t)(0x80 | ((fila ? 0x40 : 0x00) + col)));
+}
+
+void lcd_letra(char c)
+{
+	lcd_byte((uint8_t)c, 1);
+}
+
+void lcd_escribir(const char *s)
+{
+	while (*s) lcd_letra(*s++);
+}
+
+void lcd_escribir_P(const char *s)
+{
+	char c;
+	while ((c = (char)pgm_read_byte(s++)) != '\0') lcd_letra(c);
+}
+
+void lcd_fila(uint8_t fila, const char *s)
+{
+	uint8_t i = 0;
+	lcd_cursor(fila, 0);
+	while (s[i] && i < 16) lcd_letra(s[i++]);
+	while (i++ < 16) lcd_letra(' ');
+}
+
+// UART
+#define TX_TAM 128   // potencia de 2 para usar mascara
+#define RX_TAM 32
+
+static volatile char    tx_buf[TX_TAM];
+static volatile uint8_t tx_ini = 0, tx_fin = 0;
+static volatile char    rx_buf[RX_TAM];
+static volatile uint8_t rx_ini = 0, rx_fin = 0;
+
+static char    linea[16];
+static uint8_t linea_len = 0;
+
+ISR(USART_RX_vect)
+{
+	char c = (char)UDR0;
+	uint8_t sig = (uint8_t)((rx_fin + 1) & (RX_TAM - 1));
+	// Si el buffer esta lleno el byte se descarta.
+	if (sig != rx_ini) {
+		rx_buf[rx_fin] = c;
+		rx_fin = sig;
+	}
+}
