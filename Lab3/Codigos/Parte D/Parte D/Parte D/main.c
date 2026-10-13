@@ -480,3 +480,309 @@ ISR(USART_RX_vect)
 		rx_fin = sig;
 	}
 }
+ISR(USART_UDRE_vect)
+{
+	// Nada mas para enviar: se apaga la interrupcion.
+	if (tx_ini == tx_fin) {
+		UCSR0B &= ~(1 << UDRIE0);
+		return;
+	}
+	UDR0 = (uint8_t)tx_buf[tx_ini];
+	tx_ini = (uint8_t)((tx_ini + 1) & (TX_TAM - 1));
+}
+
+void uart_init(void)
+{
+	// U2X0 activo: doble velocidad, menor error a 9600.
+	uint16_t ubrr = (uint16_t)(F_CPU / (8UL * UART_BAUD) - 1);
+	UBRR0H = (uint8_t)(ubrr >> 8);
+	UBRR0L = (uint8_t)ubrr;
+	UCSR0A = (1 << U2X0);
+	UCSR0C = (1 << UCSZ01) | (1 << UCSZ00);
+	UCSR0B = (1 << RXEN0) | (1 << TXEN0) | (1 << RXCIE0);
+}
+
+// Transmision por buffer para no frenar la cancion.
+void uart_enviar(char c)
+{
+	uint8_t sig = (uint8_t)((tx_fin + 1) & (TX_TAM - 1));
+	while (sig == tx_ini) { }
+	tx_buf[tx_fin] = c;
+	tx_fin = sig;
+	UCSR0B |= (1 << UDRIE0);
+}
+
+void uart_print(const char *s)
+{
+	while (*s) uart_enviar(*s++);
+}
+
+void uart_print_P(const char *s)
+{
+	char c;
+	while ((c = (char)pgm_read_byte(s++)) != '\0') uart_enviar(c);
+}
+
+void uart_print_num(uint16_t n)
+{
+	char b[6];
+	uint8_t i = 0;
+	do { b[i++] = (char)('0' + n % 10); n /= 10; } while (n);
+	while (i) uart_enviar(b[--i]);
+}
+
+uint8_t uart_leer_linea(char *buf, uint8_t max)
+{
+	while (rx_ini != rx_fin) {
+		char c = rx_buf[rx_ini];
+		rx_ini = (uint8_t)((rx_ini + 1) & (RX_TAM - 1));
+
+		if (c == '\r' || c == '\n') {
+			// Ignora la linea vacia que deja el par \r\n.
+			if (linea_len == 0) continue;
+			uint8_t n = (linea_len < max - 1) ? linea_len : (uint8_t)(max - 1);
+			for (uint8_t i = 0; i < n; i++) buf[i] = linea[i];
+			buf[n] = '\0';
+			linea_len = 0;
+			return 1;
+		}
+		if (linea_len < sizeof(linea)) linea[linea_len++] = c;
+	}
+	return 0;
+}
+
+// CANCIONES
+static const paso_t pasos_para_elisa[] PROGMEM = {
+	{N_E5,   SIL,      1}, {N_DS5,  SIL,      1}, {N_E5,   SIL,      1}, {N_DS5,  SIL,      1},
+	{N_E5,   SIL,      1}, {N_B4,   SIL,      1}, {N_D5,   SIL,      1}, {N_C5,   SIL,      1},
+	{N_A4,   N_A3,     1}, {MANT,   N_E4,     1}, {SIL,    N_A4,     1}, {N_C4,   SIL,      1},
+	{N_E4,   SIL,      1}, {N_A4,   SIL,      1}, {N_B4,   N_E3,     1}, {MANT,   N_E4,     1},
+	{SIL,    N_GS4,    1}, {N_E4,   SIL,      1}, {N_GS4,  SIL,      1}, {N_B4,   SIL,      1},
+	{N_C5,   N_A3,     1}, {MANT,   N_E4,     1}, {SIL,    N_A4,     1}, {N_E4,   SIL,      1},
+	{N_E5,   SIL,      1}, {N_DS5,  SIL,      1}, {N_E5,   SIL,      1}, {N_DS5,  SIL,      1},
+	{N_E5,   SIL,      1}, {N_B4,   SIL,      1}, {N_D5,   SIL,      1}, {N_C5,   SIL,      1},
+	{N_A4,   N_A3,     1}, {MANT,   N_E4,     1}, {SIL,    N_A4,     1}, {N_C4,   SIL,      1},
+	{N_E4,   SIL,      1}, {N_A4,   SIL,      1}, {N_B4,   N_E3,     1}, {MANT,   N_E4,     1},
+	{SIL,    N_GS4,    1}, {N_E4,   SIL,      1}, {N_C5,   SIL,      1}, {N_B4,   SIL,      1},
+	{N_A4,   N_A3,     1}, {MANT,   N_E4,     1}, {MANT,   N_A4,     1}, {MANT,   SIL,      1},
+	{N_A4,   N_A3,     1}, {MANT,   N_E4,     1}, {SIL,    N_A4,     1}, {N_B4,   SIL,      1},
+	{N_C5,   SIL,      1}, {N_D5,   SIL,      1}, {N_E5,   N_C4,     1}, {MANT,   N_G4,     1},
+	{MANT,   N_C5,     1}, {N_G4,   SIL,      1}, {N_F5,   SIL,      1}, {N_E5,   SIL,      1},
+	{N_D5,   N_G3,     1}, {MANT,   N_G4,     1}, {MANT,   N_B4,     1}, {N_F4,   SIL,      1},
+	{N_E5,   SIL,      1}, {N_D5,   SIL,      1}, {N_C5,   N_A3,     1}, {MANT,   N_E4,     1},
+	{MANT,   N_A4,     1}, {N_E4,   SIL,      1}, {N_D5,   SIL,      1}, {N_C5,   SIL,      1},
+	{N_B4,   N_E3,     1}, {MANT,   N_E4,     1}, {SIL,    N_E5,     1}, {N_E4,   SIL,      1},
+	{N_E5,   SIL,      1}, {SIL,    N_E5,     1}, {SIL,    N_E6,     1}, {N_E5,   SIL,      1},
+	{N_E6,   SIL,      1}, {SIL,    N_DS6,    1}, {SIL,    N_E6,     1}, {N_DS5,  SIL,      1},
+	{N_E5,   SIL,      1}, {MANT,   N_DS6,    1}, {SIL,    N_E6,     1}, {N_DS5,  SIL,      1},
+	{N_E5,   SIL,      1}, {N_DS5,  SIL,      1}, {N_E5,   SIL,      1}, {N_DS5,  SIL,      1},
+	{N_E5,   SIL,      1}, {N_B4,   SIL,      1}, {N_D5,   SIL,      1}, {N_C5,   SIL,      1},
+	{N_A4,   N_A3,     1}, {MANT,   N_E4,     1}, {SIL,    N_A4,     1}, {N_C4,   SIL,      1},
+	{N_E4,   SIL,      1}, {N_A4,   SIL,      1}, {N_B4,   N_E3,     1}, {MANT,   N_E4,     1},
+	{SIL,    N_GS4,    1}, {N_E4,   SIL,      1}, {N_GS4,  SIL,      1}, {N_B4,   SIL,      1},
+	{N_C5,   N_A3,     1}, {MANT,   N_E4,     1}, {SIL,    N_A4,     1}, {N_E4,   SIL,      1},
+	{N_E5,   SIL,      1}, {N_DS5,  SIL,      1}, {N_E5,   SIL,      1}, {N_DS5,  SIL,      1},
+	{N_E5,   SIL,      1}, {N_B4,   SIL,      1}, {N_D5,   SIL,      1}, {N_C5,   SIL,      1},
+	{N_A4,   N_A3,     1}, {MANT,   N_E4,     1}, {MANT,   N_A4,     7},
+};
+
+static const paso_t pasos_marcha_nupcial[] PROGMEM = {
+	{N_C4,   SIL,      4}, {N_C4,   SIL,      4}, {N_C4,   SIL,      4}, {N_C4,   SIL,     24},
+	{SIL,    SIL,     12}, {N_C4,   SIL,      4}, {N_C4,   SIL,      4}, {N_C4,   SIL,      4},
+	{N_C4,   SIL,     24}, {SIL,    SIL,     12}, {N_C4,   SIL,      4}, {N_C4,   SIL,      4},
+	{N_C4,   SIL,      4}, {N_E4,   SIL,     12}, {N_E4,   N_C3,     4}, {N_E4,   N_C3,     4},
+	{N_E4,   N_C3,     4}, {N_E4,   N_C3,    12}, {N_E4,   N_C3,     4}, {N_E4,   N_C3,     4},
+	{N_E4,   N_C3,     4}, {N_G4,   N_C3,    12}, {N_G4,   N_C3,     4}, {N_G4,   N_C3,     4},
+	{N_G4,   N_C3,     4}, {N_G4,   N_C3,    12}, {SIL,    N_C3,     4}, {SIL,    N_C3,     4},
+	{SIL,    N_C3,     4}, {N_C6,   N_A3,    24}, {N_B5,   N_B3,    18}, {N_FS5,  N_B3,     6},
+	{N_A5,   N_E4,    12}, {N_G5,   MANT,    12}, {N_F5,   N_F4,     6}, {SIL,    SIL,      6},
+	{N_D5,   N_F4,     6}, {SIL,    SIL,      6}, {N_C5,   N_G3,    23}, {SIL,    MANT,     1},
+	{N_D5,   N_G4,    12}, {N_G4,   MANT,     9}, {N_D5,   MANT,     3}, {N_E5,   N_C4,    12},
+	{SIL,    SIL,     18}, {N_C5,   SIL,      3}, {SIL,    SIL,      3}, {N_E5,   SIL,      3},
+	{SIL,    SIL,      3}, {N_G5,   SIL,      3}, {SIL,    SIL,      3}, {N_C6,   N_A3,    24},
+	{N_B5,   N_B3,    18}, {N_FS5,  N_B3,     6}, {N_A5,   N_E4,    12}, {N_G5,   MANT,    12},
+	{N_F5,   N_F4,     6}, {SIL,    SIL,      6}, {N_D5,   N_F4,     6}, {SIL,    SIL,      6},
+	{N_C5,   N_G3,    23}, {SIL,    MANT,     1}, {N_E5,   N_G4,    12}, {N_D5,   N_G3,     9},
+	{N_E5,   MANT,     3}, {N_D5,   N_G3,    24}, {N_C5,   N_C4,    12}, {MANT,   MANT,    36},
+};
+
+static const paso_t pasos_arroz_con_leche[] PROGMEM = {
+	{N_C4,  SIL,  1},
+	{N_F4,  N_F3, 2}, {N_A4,  MANT, 1}, {N_F4,  N_C3, 1}, {N_F4,  MANT, 1}, {N_C4,  MANT, 1},
+	{N_F4,  N_F3, 1}, {N_F4,  MANT, 1}, {N_A4,  MANT, 1}, {N_G4,  N_C3, 2}, {N_G4,  MANT, 1},
+	{N_AS4, N_C3, 1}, {N_AS4, MANT, 1}, {N_AS4, MANT, 1}, {N_A4,  N_F3, 1}, {N_A4,  MANT, 1}, {N_A4, MANT, 1},
+	{N_G4,  N_C3, 1}, {N_A4,  MANT, 1}, {N_G4,  MANT, 1}, {N_F4,  N_F3, 2}, {N_C4,  MANT, 1},
+	{N_F4,  N_F3, 1}, {N_F4,  MANT, 1}, {N_A4,  MANT, 1}, {N_F4,  N_C3, 2}, {N_C4,  MANT, 1},
+	{N_F4,  N_F3, 1}, {N_F4,  MANT, 1}, {N_A4,  MANT, 1}, {N_G4,  N_C3, 2}, {N_G4,  MANT, 1},
+	{N_AS4, N_C3, 1}, {N_AS4, MANT, 1}, {N_AS4, MANT, 1}, {N_A4,  N_F3, 1}, {N_A4,  MANT, 1}, {N_A4, MANT, 1},
+	{N_G4,  N_C3, 2}, {N_G4,  MANT, 1}, {N_F4,  N_F3, 2}, {N_A4,  MANT, 1},
+	{N_C5,  N_C3, 2}, {N_C4,  MANT, 1}, {N_F4,  N_F3, 2}, {N_A4,  MANT, 1},
+	{N_C5,  N_C3, 1}, {N_C5,  MANT, 1}, {N_C4,  MANT, 1}, {N_F4,  N_F3, 2}, {N_C4,  MANT, 1},
+	{N_F4,  N_F3, 1}, {N_F4,  MANT, 1}, {N_A4,  MANT, 1}, {N_F4,  N_C3, 1}, {N_F4,  MANT, 1}, {N_F4, MANT, 1},
+	{N_F4,  N_F3, 1}, {N_E4,  MANT, 1}, {N_F4,  MANT, 1}, {N_G4,  N_C3, 2}, {N_G4,  MANT, 1},
+	{N_AS4, N_C3, 1}, {N_AS4, MANT, 1}, {N_AS4, MANT, 1}, {N_A4,  N_F3, 1}, {N_A4,  MANT, 1}, {N_A4, MANT, 1},
+	{N_G4,  N_C3, 1}, {N_G4,  MANT, 1}, {N_G4,  MANT, 1}, {N_F4,  N_F3, 6},
+};
+
+static const char nombre_c1[] PROGMEM = "Para Elisa";
+static const char nombre_c2[] PROGMEM = "Arroz con leche";
+static const char nombre_c3[] PROGMEM = "Marcha nupcial";
+
+#define CANT(x) (sizeof(x) / sizeof((x)[0]))
+
+// Ultimo campo: ms por unidad de duracion (tempo).
+const cancion_t canciones[CANT_CANCIONES] PROGMEM = {
+	{ nombre_c1, pasos_para_elisa,      CANT(pasos_para_elisa),      160 },
+	{ nombre_c2, pasos_arroz_con_leche, CANT(pasos_arroz_con_leche), 210 },
+	{ nombre_c3, pasos_marcha_nupcial,  CANT(pasos_marcha_nupcial),   45 },
+};
+
+// REPRODUCTOR
+static cancion_t c;
+static uint16_t  indice_paso;
+static uint32_t  t_inicio;
+static uint16_t  dur_ms;
+static uint8_t   cortar_mel, cortar_bajo, cortado;
+static uint8_t   nota_mel;
+static uint8_t   activo = 0;
+
+static void leer_paso(uint16_t i, paso_t *p)
+{
+	memcpy_P(p, &c.pasos[i], sizeof(paso_t));
+}
+
+static void cargar_paso(uint16_t i)
+{
+	paso_t p, sig;
+	leer_paso(i, &p);
+
+	if (p.mel != MANT)  { tocar_nota(VOZ_MELODIA, p.mel); nota_mel = p.mel; }
+	if (p.bajo != MANT)   tocar_nota(VOZ_BAJO, p.bajo);
+
+	dur_ms = (uint16_t)p.dur * c.ms_unidad;
+
+	// Si el paso siguiente ataca una nota nueva, esa voz se corta antes.
+	if (i + 1 < c.cantidad) {
+		leer_paso(i + 1, &sig);
+		cortar_mel  = (sig.mel  != MANT);
+		cortar_bajo = (sig.bajo != MANT);
+		} else {
+		cortar_mel = cortar_bajo = 1;
+	}
+	cortado = 0;
+}
+
+void empezar_cancion(uint8_t indice)
+{
+	memcpy_P(&c, &canciones[indice], sizeof(cancion_t));
+	indice_paso = 0;
+	activo = 1;
+	apagar_buzzers();
+	t_inicio = millis();
+	cargar_paso(0);
+}
+
+void parar_cancion(void)
+{
+	activo = 0;
+	nota_mel = SIL;
+	apagar_buzzers();
+}
+
+uint8_t actualizar_cancion(void)
+{
+	if (!activo) return 0;
+
+	// No bloqueante: se compara contra millis() en cada vuelta.
+	uint32_t t = millis() - t_inicio;
+
+	if (!cortado && dur_ms > 2 * ARTICULACION_MS && t >= dur_ms - ARTICULACION_MS) {
+		if (cortar_mel)  tocar_nota(VOZ_MELODIA, SIL);
+		if (cortar_bajo) tocar_nota(VOZ_BAJO, SIL);
+		cortado = 1;
+	}
+
+	if (t >= dur_ms) {
+		// Suma exacta para no acumular error de tiempo.
+		t_inicio += dur_ms;
+		indice_paso++;
+		if (indice_paso >= c.cantidad) {
+			parar_cancion();
+			return 0;
+		}
+		cargar_paso(indice_paso);
+	}
+	return 1;
+}
+
+uint8_t nota_actual(void)
+{
+	return nota_mel;
+}
+
+uint8_t progreso_cancion(uint8_t escala)
+{
+	if (!activo || c.cantidad == 0) return 0;
+	return (uint8_t)(((uint32_t)indice_paso * escala) / c.cantidad);
+}
+
+void nombre_cancion(uint8_t indice, char *buf, uint8_t max)
+{
+	const char *p = (const char *)pgm_read_ptr(&canciones[indice].nombre);
+	strncpy_P(buf, p, max - 1);
+	buf[max - 1] = '\0';
+}
+
+// MAQUINA DE ESTADOS
+typedef enum { EST_PIANO, EST_CANCION } estado_t;
+
+static estado_t estado;
+static uint8_t  cancion_actual;
+static uint8_t  teclas_previas;
+
+static const uint8_t notas_piano[8] PROGMEM = {
+	N_C4, N_D4, N_E4, N_F4, N_G4, N_A4, N_B4, N_C5
+};
+
+// PANTALLA
+static void pantalla_piano(void)
+{
+	lcd_fila(0, "  MODO  PIANO");
+	lcd_fila(1, "Toque una tecla");
+}
+
+static void pantalla_nota(uint8_t mel, uint8_t bajo, uint8_t acorde)
+{
+	char l[17], n[6];
+	nombre_nota(mel, n);
+	strcpy(l, n);
+	if (acorde) {
+		strcat(l, " + ");
+		nombre_nota(bajo, n);
+		strcat(l, n);
+		} else {
+		uint16_t f = frecuencia_nota(mel);
+		uint8_t i = (uint8_t)strlen(l);
+		while (i < 6) l[i++] = ' ';
+		char d[6]; uint8_t k = 0;
+		do { d[k++] = (char)('0' + f % 10); f /= 10; } while (f);
+		while (k) l[i++] = d[--k];
+		l[i] = '\0';
+		strcat(l, " Hz");
+	}
+	lcd_fila(1, l);
+}
+
+static void pantalla_cancion(uint8_t nota, uint8_t prog)
+{
+	char l[17], n[6];
+	l[0] = 'C'; l[1] = (char)('1' + cancion_actual); l[2] = ' ';
+	nombre_nota(nota, n);
+	uint8_t i = 3, k = 0;
+	while (n[k] && i < 8) l[i++] = n[k++];
+	while (i < 8) l[i++] = ' ';
+	// 0xFF es el bloque lleno del LCD.
+	for (k = 0; k < 8; k++) l[i++] = (k < prog) ? (char)0xFF : '.';
+	l[i] = '\0';
+	lcd_fila(1, l);
+}

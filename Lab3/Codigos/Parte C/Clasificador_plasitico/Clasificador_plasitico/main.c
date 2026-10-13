@@ -121,6 +121,82 @@ static void mostrar_pagina(void);
 static void diagnostico_adc(void);
 static void prueba_ws2812(void);
 
+// PROGRAMA PRINCIPAL
+int main(void) {
+	uint16_t tiempo_pagina=0;
+	/* Como en Parte A, UART disponible antes de inicializar LCD. */
+	uart_init();
+	uart_puts("\r\nIniciando sistema \r\n");
+	_delay_ms(100);
+	uart_puts("Iniciando LCD...\r\n");
+	/* Inicializacion HD44780 sin ejecutar el mensaje de la libreria. */
+	lcd_inicio_corregido();
+	adc_init(); /* PC0 entrada sin pull-up DESPUES de twi_init */
+	#if MODO_RGB
+	DDRD |= RGB_MASK;
+	PORTD &= ~RGB_MASK;    /* LED RGB: D3/D5/D6 salidas, apagadas */
+	#else
+	WS_DDR_REG |= WS_BIT;
+	PORTD &= ~WS_BIT;
+	#endif
+	ws_apagar();
+	servo_init();
+	cargar();
+	sei();
+	ayuda();
+	listar();
+	pantalla("Clasificador x4",cal.validos ? "m: medir muestra" : "Calibrar 1 a 4");
+	for (;;) {
+		switch (estado) {
+			case REPOSO: {
+				char c=tomar_comando();
+				if (c=='m' || c=='M') {
+					/* No inferir colores a partir de patrones inventados. */
+					if (!cal.validos) {
+						uart_puts("Sin patrones: calibre los plasticos usados con 1..4.\r\n");
+						pantalla("Sin calibracion","Usar teclas 1-4");
+						hay_resultado=0; ocupado=0;
+					} else estado=MIDIENDO;
+					} else if (c>='1' && c<='4') {
+					calibrar((uint8_t)(c-'1')); ocupado=0;
+					} else if (c=='a' || c=='A') { diagnostico_adc(); ocupado=0;
+					} else if (c=='t' || c=='T') { prueba_ws2812(); ocupado=0;
+					} else if (c=='p' || c=='P') { listar(); ocupado=0;
+					} else if (c=='h' || c=='H') { ayuda(); ocupado=0;
+					} else if (c=='x' || c=='X') {
+					memset(&cal,0,sizeof cal); guardar();
+					hay_resultado=0; ws_apagar();
+					pantalla("Patrones borrados","Calibrar 1 a 4");
+					uart_puts("Patrones borrados.\r\n"); ocupado=0;
+				}
+				if (estado==REPOSO) {
+					_delay_ms(20);
+					tiempo_pagina+=20;
+					if (hay_resultado && tiempo_pagina>=PAGINA_MS) {
+						tiempo_pagina=0;
+						pagina=(pagina+1)%(N_COLORES+1);
+						mostrar_pagina();
+					}
+				}
+				break;
+			}
+			case MIDIENDO:
+			barrido(0); estado=CLASIFICANDO; break;
+			case CLASIFICANDO:
+			detectado=clasificar(&cal,lectura); estado=MOSTRANDO; break;
+			case MOSTRANDO:
+			if (detectado>=0) {
+				servo_angulo(ANGULOS[detectado]);
+				luz_color((uint8_t)detectado); /* Queda FIJO, no apagar luego. */
+				} else ws_apagar(); /* No representar una clasificacion falsa. */
+				hay_resultado=1; pagina=0; tiempo_pagina=0;
+				reportar(); mostrar_pagina();
+				ocupado=0; estado=REPOSO;
+				break;
+			}
+		}
+	}
+
 // IMPLEMENTACION DE FUNCIONES
 
 static void uart_putc(char c) {
