@@ -63,3 +63,45 @@ static void lcd_num(uint32_t numero);
 static void lcd_goto(uint8_t col,uint8_t fila);
 static void lcd_show(const char *l1,const char *l2);
 static uint32_t leer_monto(const char *titulo);
+
+
+// Implementacion de funciones 
+
+static void keypad_init(void) {
+	DDRD |= ROW_MASK; PORTD |= ROW_MASK;
+	DDRD &= ~((1<<COL_C1)|(1<<COL_C2));
+	PORTD |= (1<<COL_C1)|(1<<COL_C2);
+	DDRC &= ~(1<<COL_C3); PORTC |= (1<<COL_C3);
+	DDRB &= ~(1<<COL_C4); PORTB |= (1<<COL_C4);
+}
+
+static uint8_t col_pressed(uint8_t c) {
+	switch(c) {
+		case 0: return !(PIND & (1<<COL_C1));
+		case 1: return !(PIND & (1<<COL_C2));
+		case 2: return !(PINC & (1<<COL_C3));
+		default: return !(PINB & (1<<COL_C4));
+	}
+}
+static char keypad_scan(void) {
+	for(uint8_t f=0;f<4;f++) {
+		PORTD |= ROW_MASK;
+		PORTD &= ~(1<<(4+f));
+		_delay_us(5);
+		for(uint8_t c=0;c<4;c++) {
+			if(col_pressed(c)) {
+				_delay_ms(25);
+				if(!col_pressed(c)) continue;
+				while(col_pressed(c));
+				PORTD |= ROW_MASK;
+				return teclas[f][c];
+			}
+		}
+	}
+	PORTD |= ROW_MASK;
+	return 0;
+}
+static void indicadores_init(void) {
+	DDRC |= (1<<LED_VERDE)|(1<<LED_ROJO)|(1<<BUZZER);
+	PORTC &= ~((1<<LED_VERDE)|(1<<LED_ROJO)|(1<<BUZZER));
+}
