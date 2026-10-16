@@ -39,3 +39,27 @@ typedef enum { ST_ESPERA_TARJETA,ST_PIN,ST_MENU,ST_MONTO_RETIRO,
 ST_MONTO_DEPOSITO,ST_MOSTRAR_SALDO,ST_BLOQUEO } estado_t;
 
 static estado_t estado=ST_ESPERA_TARJETA;
+static char pin_buf[5];
+
+static uint8_t pin_idx=0,intentos=0;
+
+static uint32_t monto=0;
+
+static const char teclas[4][4]={{'1','2','3','A'},{'4','5','6','B'},
+{'7','8','9','C'},{'*','0','#','D'}};
+
+/* ---------- Prototipos de funciones ---------- */
+static void keypad_init(void);
+static uint8_t col_pressed(uint8_t c);
+static char keypad_scan(void);
+static void indicadores_init(void);
+static void ok(void);
+static void error_led(void);
+static void buzz(void);
+static void cargar_cuentas(void);
+static void guardar_saldo(uint8_t idx);
+static uint8_t detectar_tarjeta(uint8_t *uid);
+static void lcd_num(uint32_t numero);
+static void lcd_goto(uint8_t col,uint8_t fila);
+static void lcd_show(const char *l1,const char *l2);
+static uint32_t leer_monto(const char *titulo);
