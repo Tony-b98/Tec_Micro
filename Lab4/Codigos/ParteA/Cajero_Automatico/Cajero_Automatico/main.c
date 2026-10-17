@@ -105,3 +105,21 @@ static void indicadores_init(void) {
 	DDRC |= (1<<LED_VERDE)|(1<<LED_ROJO)|(1<<BUZZER);
 	PORTC &= ~((1<<LED_VERDE)|(1<<LED_ROJO)|(1<<BUZZER));
 }
+static void ok(void) {PORTC|=(1<<LED_VERDE);_delay_ms(500);PORTC&=~(1<<LED_VERDE);}
+static void error_led(void) {PORTC|=(1<<LED_ROJO);_delay_ms(500);PORTC&=~(1<<LED_ROJO);}
+static void buzz(void) {PORTC|=(1<<BUZZER);_delay_ms(1000);PORTC&=~(1<<BUZZER);}
+static void cargar_cuentas(void) {eeprom_read_block(cuentas,ee_cuentas,sizeof(cuentas));}
+static void guardar_saldo(uint8_t idx) {eeprom_update_dword(&ee_cuentas[idx].saldo,cuentas[idx].saldo);}
+static uint8_t detectar_tarjeta(uint8_t *uid) {
+    memset(uid,0,5);
+    mfrc522_standard(uid);
+    /* La biblioteca original no devuelve estado ni valida CRC/BCC.
+       Este chequeo es solo preliminar; NO autentica una tarjeta. */
+    return (uid[0]|uid[1]|uid[2]|uid[3])!=0;
+}
+
+static void lcd_num(uint32_t numero) {
+    char texto[11];
+    sprintf(texto,"%lu",(unsigned long)numero);
+    twi_lcd_msg(texto);
+}
