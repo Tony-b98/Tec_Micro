@@ -123,3 +123,35 @@ static void lcd_num(uint32_t numero) {
     sprintf(texto,"%lu",(unsigned long)numero);
     twi_lcd_msg(texto);
 }
+
+static void lcd_goto(uint8_t col,uint8_t fila) {
+	twi_lcd_cmd((fila ? 0xC0 : 0x80)+col);
+}
+
+static void lcd_show(const char *l1,const char *l2) {
+	twi_lcd_clear();
+	_delay_ms(3);
+	lcd_goto(0,0);
+	_delay_ms(2);
+	twi_lcd_msg(l1);
+	if(l2)
+	{	lcd_goto(0,1);
+		_delay_ms(2);
+	twi_lcd_msg(l2);}
+}
+
+static uint32_t leer_monto(const char *titulo) {
+	char buf[7]; uint8_t i=0;
+	lcd_show(titulo,""); lcd_goto(0,1);
+	for(;;) {
+		char k=keypad_scan();
+		if(k>='0'&&k<='9'&&i<6) {buf[i++]=k;twi_lcd_dwr(k);}
+		else if(k=='*'&&i) {i--;lcd_goto(i,1);twi_lcd_dwr(' ');lcd_goto(i,1);}
+		else if(k=='#'&&i) {
+			buf[i]=0;uint32_t v=0;
+			for(uint8_t j=0;j<i;j++) v=v*10+(buf[j]-'0');
+			return v;
+		}
+	}
+}
+
