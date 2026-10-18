@@ -155,3 +155,123 @@ static uint32_t leer_monto(const char *titulo) {
 	}
 }
 
+/* ---------- Programa principal ---------- */
+int main(void)
+{
+	uart_init(BAUD_PRESCALE);
+	uart_print("\r\n=== CAJERO ATM INICIANDO ===\r\n");
+
+	spi_init();
+	mfrc522_resetPinInit();
+	mfrc522_init();
+
+	twi_init();
+	keypad_init();
+	indicadores_init();
+	cargar_cuentas();
+	twi_lcd_init();
+
+	lcd_show("CAJERO ATM", "Acerque tarjeta");
+
+	uint8_t uid[5];
+
+	for (;;)
+	{
+		switch (estado)
+		{
+			case ST_ESPERA_TARJETA:
+			if (detectar_tarjeta(uid))
+			{
+				uart_print("UID detectado: ");
+				uart_print_hex_array(uid, 4);
+
+				cuenta_actual = 0xFF;
+
+				for (uint8_t i = 0; i < N_CUENTAS; i++)
+				{
+					if (memcmp(cuentas[i].uid, uid, 4) == 0)
+					{
+						cuenta_actual = i;
+						break;
+					}
+				}
+
+				if (cuenta_actual != 0xFF)
+				{
+					ok();
+					lcd_show("Bienvenido", 0);
+					lcd_num(cuenta_actual + 1);
+
+					pin_idx = 0;
+					intentos = 0;
+					estado = ST_PIN;
+
+					_delay_ms(800);
+					lcd_show("Ingrese PIN", "PIN: ");
+				}
+				else
+				{
+					error_led();
+					lcd_show("Tarjeta no val", 0);
+
+					_delay_ms(1500);
+					lcd_show("Acerque tarjeta", 0);
+				}
+			}
+
+			_delay_ms(300);
+			break;
+
+			case ST_PIN:
+			{
+				char k = keypad_scan();
+
+				if (k >= '0' && k <= '9' && pin_idx < 4)
+				{
+					pin_buf[pin_idx++] = k;
+					twi_lcd_dwr('*');
+				}
+
+				if (pin_idx == 4)
+				{
+					pin_buf[4] = 0;
+
+					if (memcmp(pin_buf, cuentas[cuenta_actual].pin, 4) == 0)
+					{
+						ok();
+						intentos = 0;
+
+						lcd_show("Acceso OK", 0);
+						uart_print("PIN correcto\r\n");
+
+						_delay_ms(1000);
+						estado = ST_MENU;
+					}
+					else
+					{
+						error_led();
+						intentos++;
+
+						lcd_show("PIN erroneo", 0);
+
+						uart_print("PIN erroneo, intento N: ");
+						uart_print_hex(intentos);
+						uart_print("\r\n");
+
+						_delay_ms(1000);
+
+						if (intentos >= 3)
+						{
+							estado = ST_BLOQUEO;
+						}
+						else
+						{
+							lcd_show("Ingrese PIN", "PIN: ");
+						}
+
+						pin_idx = 0;
+					}
+				}
+
+				break;
+			}
