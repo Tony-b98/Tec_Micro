@@ -65,97 +65,8 @@ static void lcd_show(const char *l1,const char *l2);
 static uint32_t leer_monto(const char *titulo);
 
 
-// Implementacion de funciones 
+// ---------- Programa principal ---------- 
 
-static void keypad_init(void) {
-	DDRD |= ROW_MASK; PORTD |= ROW_MASK;
-	DDRD &= ~((1<<COL_C1)|(1<<COL_C2));
-	PORTD |= (1<<COL_C1)|(1<<COL_C2);
-	DDRC &= ~(1<<COL_C3); PORTC |= (1<<COL_C3);
-	DDRB &= ~(1<<COL_C4); PORTB |= (1<<COL_C4);
-}
-
-static uint8_t col_pressed(uint8_t c) {
-	switch(c) {
-		case 0: return !(PIND & (1<<COL_C1));
-		case 1: return !(PIND & (1<<COL_C2));
-		case 2: return !(PINC & (1<<COL_C3));
-		default: return !(PINB & (1<<COL_C4));
-	}
-}
-static char keypad_scan(void) {
-	for(uint8_t f=0;f<4;f++) {
-		PORTD |= ROW_MASK;
-		PORTD &= ~(1<<(4+f));
-		_delay_us(5);
-		for(uint8_t c=0;c<4;c++) {
-			if(col_pressed(c)) {
-				_delay_ms(25);
-				if(!col_pressed(c)) continue;
-				while(col_pressed(c));
-				PORTD |= ROW_MASK;
-				return teclas[f][c];
-			}
-		}
-	}
-	PORTD |= ROW_MASK;
-	return 0;
-}
-static void indicadores_init(void) {
-	DDRC |= (1<<LED_VERDE)|(1<<LED_ROJO)|(1<<BUZZER);
-	PORTC &= ~((1<<LED_VERDE)|(1<<LED_ROJO)|(1<<BUZZER));
-}
-static void ok(void) {PORTC|=(1<<LED_VERDE);_delay_ms(500);PORTC&=~(1<<LED_VERDE);}
-static void error_led(void) {PORTC|=(1<<LED_ROJO);_delay_ms(500);PORTC&=~(1<<LED_ROJO);}
-static void buzz(void) {PORTC|=(1<<BUZZER);_delay_ms(1000);PORTC&=~(1<<BUZZER);}
-static void cargar_cuentas(void) {eeprom_read_block(cuentas,ee_cuentas,sizeof(cuentas));}
-static void guardar_saldo(uint8_t idx) {eeprom_update_dword(&ee_cuentas[idx].saldo,cuentas[idx].saldo);}
-static uint8_t detectar_tarjeta(uint8_t *uid) {
-    memset(uid,0,5);
-    mfrc522_standard(uid);
-    /* La biblioteca original no devuelve estado ni valida CRC/BCC.
-       Este chequeo es solo preliminar; NO autentica una tarjeta. */
-    return (uid[0]|uid[1]|uid[2]|uid[3])!=0;
-}
-
-static void lcd_num(uint32_t numero) {
-    char texto[11];
-    sprintf(texto,"%lu",(unsigned long)numero);
-    twi_lcd_msg(texto);
-}
-
-static void lcd_goto(uint8_t col,uint8_t fila) {
-	twi_lcd_cmd((fila ? 0xC0 : 0x80)+col);
-}
-
-static void lcd_show(const char *l1,const char *l2) {
-	twi_lcd_clear();
-	_delay_ms(3);
-	lcd_goto(0,0);
-	_delay_ms(2);
-	twi_lcd_msg(l1);
-	if(l2)
-	{	lcd_goto(0,1);
-		_delay_ms(2);
-	twi_lcd_msg(l2);}
-}
-
-static uint32_t leer_monto(const char *titulo) {
-	char buf[7]; uint8_t i=0;
-	lcd_show(titulo,""); lcd_goto(0,1);
-	for(;;) {
-		char k=keypad_scan();
-		if(k>='0'&&k<='9'&&i<6) {buf[i++]=k;twi_lcd_dwr(k);}
-		else if(k=='*'&&i) {i--;lcd_goto(i,1);twi_lcd_dwr(' ');lcd_goto(i,1);}
-		else if(k=='#'&&i) {
-			buf[i]=0;uint32_t v=0;
-			for(uint8_t j=0;j<i;j++) v=v*10+(buf[j]-'0');
-			return v;
-		}
-	}
-}
-
-/* ---------- Programa principal ---------- */
 int main(void)
 {
 	uart_init(BAUD_PRESCALE);
@@ -275,3 +186,206 @@ int main(void)
 
 				break;
 			}
+
+			case ST_BLOQUEO:
+			lcd_show("BLOQUEADO", 0);
+			uart_print("SISTEMA BLOQUEADO\r\n");
+
+			buzz();
+			_delay_ms(3000);
+
+			intentos = 0;
+			pin_idx = 0;
+			cuenta_actual = 0xFF;
+
+			estado = ST_ESPERA_TARJETA;
+			lcd_show("Acerque tarjeta", 0);
+			break;
+
+			case ST_MENU:
+			{
+				lcd_show("A:Ret B:Dep", "C:Saldo D:Salir");
+
+				char k = keypad_scan();
+
+				if (k == 'A')
+				{
+					estado = ST_MONTO_RETIRO;
+				}
+				else if (k == 'B')
+				{
+					estado = ST_MONTO_DEPOSITO;
+				}
+				else if (k == 'C')
+				{
+					estado = ST_MOSTRAR_SALDO;
+				}
+				else if (k == 'D')
+				{
+					cuenta_actual = 0xFF;
+
+					lcd_show("Hasta luego", 0);
+					_delay_ms(1000);
+
+					estado = ST_ESPERA_TARJETA;
+					lcd_show("Acerque tarjeta", 0);
+				}
+
+				break;
+			}
+
+			case ST_MONTO_RETIRO:
+			monto = leer_monto("Retirar monto:");
+
+			uart_print("Retiro solicitado: ");
+			uart_print_hex((uint8_t)(monto >> 8));
+			uart_print_hex((uint8_t)monto);
+			uart_print("\r\n");
+
+			if (monto <= cuentas[cuenta_actual].saldo)
+			{
+				cuentas[cuenta_actual].saldo -= monto;
+				guardar_saldo(cuenta_actual);
+
+				ok();
+				lcd_show("Retiro OK", 0);
+			}
+			else
+			{
+				error_led();
+				lcd_show("Saldo insuf.", 0);
+			}
+
+			_delay_ms(1500);
+			estado = ST_MENU;
+			break;
+
+			case ST_MONTO_DEPOSITO:
+			monto = leer_monto("Depositar monto:");
+
+			if (monto <= UINT32_MAX - cuentas[cuenta_actual].saldo)
+			{
+				cuentas[cuenta_actual].saldo += monto;
+				guardar_saldo(cuenta_actual);
+
+				ok();
+				lcd_show("Deposito OK", 0);
+			}
+			else
+			{
+				error_led();
+				lcd_show("Monto invalido", 0);
+			}
+
+			_delay_ms(1500);
+			estado = ST_MENU;
+			break;
+
+			case ST_MOSTRAR_SALDO:
+			twi_lcd_clear();
+			_delay_ms(3);
+
+			lcd_goto(0, 0);
+			_delay_ms(3);
+
+			twi_lcd_msg("Saldo: ");
+			lcd_num(cuentas[cuenta_actual].saldo);
+
+			while (!keypad_scan());
+
+			estado = ST_MENU;
+			break;
+		}
+	}
+}
+
+// Implementacion de funciones 
+
+static void keypad_init(void) {
+	DDRD |= ROW_MASK; PORTD |= ROW_MASK;
+	DDRD &= ~((1<<COL_C1)|(1<<COL_C2));
+	PORTD |= (1<<COL_C1)|(1<<COL_C2);
+	DDRC &= ~(1<<COL_C3); PORTC |= (1<<COL_C3);
+	DDRB &= ~(1<<COL_C4); PORTB |= (1<<COL_C4);
+}
+
+static uint8_t col_pressed(uint8_t c) {
+	switch(c) {
+		case 0: return !(PIND & (1<<COL_C1));
+		case 1: return !(PIND & (1<<COL_C2));
+		case 2: return !(PINC & (1<<COL_C3));
+		default: return !(PINB & (1<<COL_C4));
+	}
+}
+static char keypad_scan(void) {
+	for(uint8_t f=0;f<4;f++) {
+		PORTD |= ROW_MASK;
+		PORTD &= ~(1<<(4+f));
+		_delay_us(5);
+		for(uint8_t c=0;c<4;c++) {
+			if(col_pressed(c)) {
+				_delay_ms(25);
+				if(!col_pressed(c)) continue;
+				while(col_pressed(c));
+				PORTD |= ROW_MASK;
+				return teclas[f][c];
+			}
+		}
+	}
+	PORTD |= ROW_MASK;
+	return 0;
+}
+static void indicadores_init(void) {
+	DDRC |= (1<<LED_VERDE)|(1<<LED_ROJO)|(1<<BUZZER);
+	PORTC &= ~((1<<LED_VERDE)|(1<<LED_ROJO)|(1<<BUZZER));
+}
+static void ok(void) {PORTC|=(1<<LED_VERDE);_delay_ms(500);PORTC&=~(1<<LED_VERDE);}
+static void error_led(void) {PORTC|=(1<<LED_ROJO);_delay_ms(500);PORTC&=~(1<<LED_ROJO);}
+static void buzz(void) {PORTC|=(1<<BUZZER);_delay_ms(1000);PORTC&=~(1<<BUZZER);}
+static void cargar_cuentas(void) {eeprom_read_block(cuentas,ee_cuentas,sizeof(cuentas));}
+static void guardar_saldo(uint8_t idx) {eeprom_update_dword(&ee_cuentas[idx].saldo,cuentas[idx].saldo);}
+static uint8_t detectar_tarjeta(uint8_t *uid) {
+    memset(uid,0,5);
+    mfrc522_standard(uid);
+    /* La biblioteca original no devuelve estado ni valida CRC/BCC.
+       Este chequeo es solo preliminar; NO autentica una tarjeta. */
+    return (uid[0]|uid[1]|uid[2]|uid[3])!=0;
+}
+
+static void lcd_num(uint32_t numero) {
+    char texto[11];
+    sprintf(texto,"%lu",(unsigned long)numero);
+    twi_lcd_msg(texto);
+}
+
+static void lcd_goto(uint8_t col,uint8_t fila) {
+	twi_lcd_cmd((fila ? 0xC0 : 0x80)+col);
+}
+
+static void lcd_show(const char *l1,const char *l2) {
+	twi_lcd_clear();
+	_delay_ms(3);
+	lcd_goto(0,0);
+	_delay_ms(2);
+	twi_lcd_msg(l1);
+	if(l2)
+	{	lcd_goto(0,1);
+		_delay_ms(2);
+	twi_lcd_msg(l2);}
+}
+
+static uint32_t leer_monto(const char *titulo) {
+	char buf[7]; uint8_t i=0;
+	lcd_show(titulo,""); lcd_goto(0,1);
+	for(;;) {
+		char k=keypad_scan();
+		if(k>='0'&&k<='9'&&i<6) {buf[i++]=k;twi_lcd_dwr(k);}
+		else if(k=='*'&&i) {i--;lcd_goto(i,1);twi_lcd_dwr(' ');lcd_goto(i,1);}
+		else if(k=='#'&&i) {
+			buf[i]=0;uint32_t v=0;
+			for(uint8_t j=0;j<i;j++) v=v*10+(buf[j]-'0');
+			return v;
+		}
+	}
+}
+
