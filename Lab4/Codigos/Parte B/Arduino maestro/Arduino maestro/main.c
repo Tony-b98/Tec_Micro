@@ -260,3 +260,60 @@ static uint8_t dht11_leer(uint8_t *temperatura,
 
     return 1;
 }
+
+// PROGRAMA PRINCIPAL
+
+int main(void) {
+
+    DDRD &= ~(1 << PD3);
+
+    PORTD |= (1 << PD3);
+
+    spi_init();
+    adc_init();
+    twi_init();
+    lcd_init();
+
+    lcd_pos(0, 0);
+    lcd_texto("LAB4 SPI MAESTRO");
+
+    lcd_pos(1, 0);
+    lcd_texto("Inicializando...");
+
+    _delay_ms(700);
+
+    enviar(CMD_RUN, 0);
+    enviar(CMD_ALARM, 0);
+
+    uint8_t btn_previo = 1;
+
+    uint8_t ldr_previo_oscuro = 0;
+    uint8_t bloqueo_pieza = 0;
+
+    uint8_t ticks_100ms = 0;
+    uint8_t ticks_temp = 0;
+    uint8_t ticks_lcd = 0;
+
+    uint8_t velocidad_anterior = 255;
+
+    while (1) {
+
+        
+          // BOTON START / STOP
+
+        uint8_t btn =
+            (PIND & (1 << PD3)) ? 1 : 0;
+
+        if (!btn && btn_previo) {
+
+            _delay_ms(25);
+
+            if (!(PIND & (1 << PD3)) && !alarma) {
+
+                en_marcha = !en_marcha;
+
+                enviar(CMD_RUN, en_marcha);
+            }
+        }
+
+        btn_previo = btn;
