@@ -65,9 +65,7 @@ static void enviar(uint8_t cmd, uint8_t valor) {
 
     PORTB |= (1 << PB2);
 }
-/* ==================================================
-   CONVERSOR ANALOGICO DIGITAL
-   ================================================== */
+//CONVERSOR ANALOGICO DIGITAL 
 
 static void adc_init(void) {
 
@@ -191,4 +189,74 @@ static void lcd_actualizar(void) {
             lcd_char(' ');
         }
     }
+}
+//SENSOR DE TEMPERATURA DHT11
+#define DHT_BIT PD2
+
+static uint8_t esperar_dht(uint8_t alto,
+                           uint16_t limite_us) {
+
+    while (limite_us--) {
+
+        uint8_t estado =
+            (PIND & (1 << DHT_BIT)) ? 1 : 0;
+
+        if (estado == alto) {
+            return 1;
+        }
+
+        _delay_us(1);
+    }
+
+    return 0;
+}
+
+static uint8_t dht11_leer(uint8_t *temperatura,
+                          uint8_t *hum) {
+
+    uint8_t datos[5] = {0};
+
+    DDRD |= (1 << DHT_BIT);
+
+    PORTD &= ~(1 << DHT_BIT);
+
+    _delay_ms(20);
+
+    DDRD &= ~(1 << DHT_BIT);
+
+    PORTD |= (1 << DHT_BIT);
+
+    _delay_us(30);
+
+    if (!esperar_dht(0, 120)) return 0;
+    if (!esperar_dht(1, 120)) return 0;
+    if (!esperar_dht(0, 120)) return 0;
+
+    for (uint8_t i = 0; i < 40; i++) {
+
+        if (!esperar_dht(1, 90)) return 0;
+
+        _delay_us(40);
+
+        datos[i / 8] <<= 1;
+
+        if (PIND & (1 << DHT_BIT)) {
+            datos[i / 8] |= 1;
+        }
+
+        if (!esperar_dht(0, 110)) return 0;
+    }
+
+    if ((uint8_t)(datos[0] +
+                  datos[1] +
+                  datos[2] +
+                  datos[3]) != datos[4]) {
+        return 0;
+    }
+
+    *hum = datos[0];
+
+    *temperatura = datos[2];
+
+    return 1;
 }
