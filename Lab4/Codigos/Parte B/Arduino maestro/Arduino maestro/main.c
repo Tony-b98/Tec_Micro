@@ -317,3 +317,36 @@ int main(void) {
         }
 
         btn_previo = btn;
+    
+	 //  CONTROL DE VELOCIDAD
+          
+
+        uint16_t pot = adc_leer(1);
+
+        // Valor mostrado en LCD: 0 a 255 
+
+        velocidad =
+            (uint8_t)(((uint32_t)pot * 255UL) 
+                      1023UL);
+
+        // PWM real aplicado al motor:
+           rango optimizado de 189 a 254 
+
+        uint8_t pwm_motor = 0;
+
+        if (velocidad > 0) {
+
+            pwm_motor =
+                189 +
+                (uint8_t)(
+                    ((uint32_t)(velocidad - 1) *
+                     65UL) / 254UL
+                );
+        }
+
+        if (velocidad != velocidad_anterior) {
+
+            enviar(CMD_SPEED, pwm_motor);
+
+            velocidad_anterior = velocidad;
+        }
