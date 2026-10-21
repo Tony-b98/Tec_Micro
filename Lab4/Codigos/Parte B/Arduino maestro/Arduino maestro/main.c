@@ -350,3 +350,91 @@ int main(void) {
 
             velocidad_anterior = velocidad;
         }
+  
+          // DETECCION Y CONTEO DE PIEZAS
+
+        uint16_t luz = adc_leer(0);
+
+        uint8_t oscuro =
+            (luz < UMBRAL_LDR);
+
+        if (!oscuro) {
+            bloqueo_pieza = 0;
+        }
+
+        if (oscuro &&
+            !ldr_previo_oscuro &&
+            !bloqueo_pieza &&
+            en_marcha &&
+            !alarma) {
+
+            piezas++;
+
+            enviar(CMD_PISTON, 1);
+
+            bloqueo_pieza = 1;
+        }
+
+        ldr_previo_oscuro = oscuro;
+
+        // CONTROL DE TEMPERATURA
+
+        if (++ticks_temp >= 20) {
+
+            ticks_temp = 0;
+
+            uint8_t t, h;
+
+            temp_valida = dht11_leer(&t, &h);
+
+            if (temp_valida) {
+
+                temp_c = t;
+
+                humedad = h;
+
+                (void)humedad;
+
+                /* Activar emergencia a 28 C */
+
+                if (temp_c >= TEMP_LIMITE &&
+                    !alarma) {
+
+                    alarma = 1;
+
+                    en_marcha = 0;
+
+                    enviar(CMD_ALARM, 1);
+                }
+
+                /* Desactivar alarma a 26 C */
+
+                else if (temp_c <= TEMP_REARME &&
+                         alarma) {
+
+                    alarma = 0;
+
+                    en_marcha = 0;
+
+                    enviar(CMD_ALARM, 0);
+                }
+            }
+        }
+
+          // ACTUALIZAR LCD
+
+        if (++ticks_lcd >= 5) {
+
+            ticks_lcd = 0;
+
+            lcd_actualizar();
+        }
+
+        ticks_100ms++;
+
+        (void)ticks_100ms;
+
+        _delay_ms(100);
+    }
+}
+
