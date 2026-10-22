@@ -69,3 +69,50 @@ static void servo_init(void) {
 	ICR1 = 39999;    // 20 ms, 50 Hz 
 	OCR1A = SERVO_REPOSO;
 }
+
+int main(void) {
+	motor_init(); servo_init(); spi_slave_init(); timer2_init();
+	sei();
+	uint8_t marcha = 0, falla = 0, pwm_deseado = 0;
+	uint8_t piston_activo = 0;
+	uint32_t piston_inicio = 0;
+
+	while (1) {
+		uint8_t cmd = 0, valor = 0, recibido = 0;
+		ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+			if (comando_listo) {
+				cmd = cmd_pendiente;
+				valor = val_pendiente;
+				comando_listo = 0;
+				recibido = 1;
+			}
+		}
+		if (recibido) {
+			switch (cmd) {
+				case CMD_RUN:
+				if (!falla) marcha = (valor != 0);
+				break;
+				case CMD_SPEED:
+				pwm_deseado = valor;
+				break;
+				case CMD_PISTON:
+				if (valor && marcha && !falla) {
+					OCR1A = SERVO_EXT;
+					piston_inicio = tiempo_ms();
+					piston_activo = 1;
+				}
+				break;
+				case CMD_ALARM:
+				if (valor) {
+					falla = 1;
+					marcha = 0;
+					piston_activo = 0;
+					OCR1A = SERVO_REPOSO;
+					} else {
+					falla = 0;
+					marcha = 0;
+				}
+				break;
+				default: break;
+			}
+		}
