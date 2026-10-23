@@ -45,4 +45,4 @@
 !.gitignore
 
 # Archivos de solución de Microchip Studio
-*.atsln
+*.atslnDebug/
