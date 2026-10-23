@@ -116,3 +116,22 @@ int main(void) {
 				default: break;
 			}
 		}
+     if (piston_activo && (uint32_t)(tiempo_ms() - piston_inicio) >= PISTON_MS) {
+	     OCR1A = SERVO_REPOSO;
+	     piston_activo = 0;
+     }
+
+     if (marcha && !falla) {
+	     PORTD |= (1 << PD4); /* IN1 alto */
+	     PORTD &= ~(1 << PD5); /* IN2 bajo */
+	     OCR0A = pwm_deseado;
+	     } else {
+	     OCR0A = 0;
+	     PORTD &= ~((1 << PD4) | (1 << PD5));
+     }
+     if (marcha && !falla) PORTD |= (1 << PD2);
+     else PORTD &= ~(1 << PD2);
+     if (falla) PORTD |= (1 << PD3) | (1 << PD7);
+     else PORTD &= ~((1 << PD3) | (1 << PD7));
+     }
+     }
