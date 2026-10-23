@@ -46,3 +46,4 @@
 
 # Archivos de solución de Microchip Studio
 *.atslnDebug/
+/Lab4/Codigos/Parte B/Arduino esclavo/Arduino esclavo/Debug/
