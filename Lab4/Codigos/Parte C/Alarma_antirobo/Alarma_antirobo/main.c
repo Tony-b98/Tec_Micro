@@ -61,3 +61,47 @@ static const char *const state_name[]  = { "DESARMADO", "ARMADO", "ALARMA", "SIL
 static const char *const state_lcd[]   = { "DESARM.", "ARMADO", "ALARMA!", "SILENC." };
 static const char *const zone_name[]   = { "NINGUNA", "VENTANA", "MOVIMIENTO", "REMOTO" };
 static const char *const zone_lcd[]    = { "NINGUNA", "VENTANA", "MOVIM.", "REMOTO" };
+//VARIABLES GLOBALES
+static volatile uint32_t g_millis = 0;
+
+#define RX_BUF_SIZE 64
+static volatile uint8_t rx_buf[RX_BUF_SIZE];
+static volatile uint8_t rx_head = 0;
+static uint8_t rx_tail = 0;
+
+#define LINE_MAX_LEN 24
+static char line[LINE_MAX_LEN];
+static uint8_t line_len = 0;
+
+static state_t   state = ST_DESARMADO;
+static op_mode_t mode  = MODE_AUTO;
+static zone_t    zone  = ZONE_NONE;
+
+static uint8_t ldr_cnt = 0, pir_cnt = 0;
+static uint8_t prev_arm = 0, prev_sil = 0, prev_mode = 0;
+
+static char last_rx[4] = "---";
+static uint8_t lcd_dirty = 1;
+
+// PROTOTIPOS DE FUNCIONES 
+static void timer0_init(void);
+static uint32_t millis(void);
+static void adc_init(void);
+static uint16_t adc_read(uint8_t ch);
+static void send_status(void);
+static void set_state(state_t s);
+static void on_event(zone_t z);
+static void handle_command(cmd_t cmd);
+static void process_line(const char *l);
+static void bt_poll(void);
+static uint8_t debounce(uint8_t active, uint8_t *cnt);
+static uint8_t pir_active(void);
+static uint8_t ldr_open(void);
+static void sensors_poll(void);
+static uint8_t edge(uint8_t now, uint8_t *prev);
+static void buttons_poll(void);
+static void update_outputs(uint32_t now);
+#if USE_LCD
+static void lcd_refresh(void);
+#endif
+static void io_init(void);
