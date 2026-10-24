@@ -1,0 +1,243 @@
+<mxfile host="Electron" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) draw.io/28.1.2 Chrome/138.0.7204.243 Electron/37.4.0 Safari/537.36" version="28.1.2">
+  <diagram name="Página-1" id="tgmbJd9zGENF8Ismm9Q2">
+    <mxGraphModel dx="59" dy="-151" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="MaNm-4JizXrRygC56yzw-30" value="ARDUINO MAESTRO (botón, potenciómetro, LDR, DHT11, LCD)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#000000;verticalAlign=top;align=left;spacingLeft=10;spacingTop=6;fontStyle=1;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="2060" y="1920" width="1240" height="720" as="geometry" />
+        </mxCell>
+        <mxCell id="MaNm-4JizXrRygC56yzw-31" value="OPERACIÓN NORMAL (alarma = 0)" style="rounded=1;arcSize=3;dashed=1;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#000000;verticalAlign=top;align=left;spacingLeft=10;spacingTop=4;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="2460" y="1970" width="800" height="330" as="geometry" />
+        </mxCell>
+        <mxCell id="MaNm-4JizXrRygC56yzw-32" value="" style="ellipse;fillColor=#000000;strokeColor=#000000;html=1;" vertex="1" parent="1">
+          <mxGeometry x="2235" y="2210" width="20" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="MaNm-4JizXrRygC56yzw-33" value="Al encender (Reset) /&lt;br&gt;init SPI, ADC, TWI, LCD" style="text;html=1;align=center;verticalAlign=top;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="2170" y="2235" width="150" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="MaNm-4JizXrRygC56yzw-34" value="" style="ellipse;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="2140" y="1980" width="210" height="160" as="geometry" />
+        </mxCell>
+        <mxCell id="MaNm-4JizXrRygC56yzw-35" value="INICIO" style="text;html=1;align=center;verticalAlign=middle;fontStyle=1;fontSize=12;" connectable="0" vertex="1" parent="MaNm-4JizXrRygC56yzw-34">
+          <mxGeometry x="10" y="24" width="190" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="MaNm-4JizXrRygC56yzw-36" value="" style="line;strokeWidth=1;html=1;" connectable="0" vertex="1" parent="MaNm-4JizXrRygC56yzw-34">
+          <mxGeometry x="8" y="48" width="194" height="10" as="geometry" />
+        </mxCell>
+        <mxCell id="MaNm-4JizXrRygC56yzw-37" value="LCD =&amp;nbsp;&quot;Inicializando...&quot;&lt;br&gt;en marcha = 0&lt;br&gt;alarma = 0" style="text;html=1;align=center;verticalAlign=top;fontSize=11;" connectable="0" vertex="1" parent="MaNm-4JizXrRygC56yzw-34">
+          <mxGeometry x="10" y="58" width="190" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="MaNm-4JizXrRygC56yzw-38" value="" style="ellipse;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="2520" y="2110" width="210" height="160" as="geometry" />
+        </mxCell>
+        <mxCell id="MaNm-4JizXrRygC56yzw-39" value="DETENIDO" style="text;html=1;align=center;verticalAlign=middle;fontStyle=1;fontSize=12;" connectable="0" vertex="1" parent="MaNm-4JizXrRygC56yzw-38">
+          <mxGeometry x="10" y="24" width="190" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="MaNm-4JizXrRygC56yzw-40" value="" style="line;strokeWidth=1;html=1;" connectable="0" vertex="1" parent="MaNm-4JizXrRygC56yzw-38">
+          <mxGeometry x="8" y="48" width="194" height="10" as="geometry" />
+        </mxCell>
+        <mxCell id="MaNm-4JizXrRygC56yzw-41" value="LCD = &quot;T:...C V:... OFF&quot;&lt;br&gt;&quot;PIEZAS:... OK&quot;&lt;br&gt;en marcha = 0&lt;br&gt;alarma = 0" style="text;html=1;align=center;verticalAlign=top;fontSize=11;" connectable="0" vertex="1" parent="MaNm-4JizXrRygC56yzw-38">
+          <mxGeometry x="10" y="58" width="190" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="MaNm-4JizXrRygC56yzw-42" value="" style="ellipse;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="2960" y="2110" width="210" height="160" as="geometry" />
+        </mxCell>
+        <mxCell id="MaNm-4JizXrRygC56yzw-43" value="MARCHA" style="text;html=1;align=center;verticalAlign=middle;fontStyle=1;fontSize=12;" connectable="0" vertex="1" parent="MaNm-4JizXrRygC56yzw-42">
+          <mxGeometry x="10" y="24" width="190" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="MaNm-4JizXrRygC56yzw-44" value="" style="line;strokeWidth=1;html=1;" connectable="0" vertex="1" parent="MaNm-4JizXrRygC56yzw-42">
+          <mxGeometry x="8" y="48" width="194" height="10" as="geometry" />
+        </mxCell>
+        <mxCell id="MaNm-4JizXrRygC56yzw-45" value="LCD = &quot;T:...C V:... ON&quot;&lt;br&gt;&quot;PIEZAS:... OK&quot;&lt;br&gt;en marcha = 1&lt;br&gt;alarma = 0" style="text;html=1;align=center;verticalAlign=top;fontSize=11;" connectable="0" vertex="1" parent="MaNm-4JizXrRygC56yzw-42">
+          <mxGeometry x="10" y="58" width="190" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="MaNm-4JizXrRygC56yzw-46" value="" style="ellipse;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="2740" y="2440" width="210" height="160" as="geometry" />
+        </mxCell>
+        <mxCell id="MaNm-4JizXrRygC56yzw-47" value="EMERGENCIA" style="text;html=1;align=center;verticalAlign=middle;fontStyle=1;fontSize=12;" connectable="0" vertex="1" parent="MaNm-4JizXrRygC56yzw-46">
+          <mxGeometry x="10" y="24" width="190" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="MaNm-4JizXrRygC56yzw-48" value="" style="line;strokeWidth=1;html=1;" connectable="0" vertex="1" parent="MaNm-4JizXrRygC56yzw-46">
+          <mxGeometry x="8" y="48" width="194" height="10" as="geometry" />
+        </mxCell>
+        <mxCell id="MaNm-4JizXrRygC56yzw-49" value="LCD = &quot;EMERGENCIA T:...C&quot;&lt;br&gt;&quot;MOTOR DETENIDO&quot;&lt;br&gt;en marcha = 0&lt;br&gt;alarma = 1" style="text;html=1;align=center;verticalAlign=top;fontSize=11;" connectable="0" vertex="1" parent="MaNm-4JizXrRygC56yzw-46">
+          <mxGeometry x="10" y="58" width="190" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="MaNm-4JizXrRygC56yzw-50" value="" style="endArrow=block;endFill=1;html=1;rounded=0;" edge="1" parent="1" source="MaNm-4JizXrRygC56yzw-32" target="MaNm-4JizXrRygC56yzw-34">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="MaNm-4JizXrRygC56yzw-51" value="[700 ms] /&lt;br&gt;SPI RUN=0, ALARM=0" style="endArrow=block;endFill=1;html=1;curved=1;fontSize=11;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="MaNm-4JizXrRygC56yzw-34" target="MaNm-4JizXrRygC56yzw-38">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint y="-25" as="offset" />
+            <Array as="points">
+              <mxPoint x="2440" y="2120" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="MaNm-4JizXrRygC56yzw-52" value="btn START/STOP (PD3) /&lt;br&gt;SPI RUN=1" style="endArrow=block;endFill=1;html=1;curved=1;fontSize=11;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="MaNm-4JizXrRygC56yzw-38" target="MaNm-4JizXrRygC56yzw-42">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint y="-30" as="offset" />
+            <Array as="points">
+              <mxPoint x="2845" y="2150" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="MaNm-4JizXrRygC56yzw-53" value="btn START/STOP (PD3) /&lt;br&gt;SPI RUN=0" style="endArrow=block;endFill=1;html=1;curved=1;fontSize=11;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="MaNm-4JizXrRygC56yzw-42" target="MaNm-4JizXrRygC56yzw-38">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint y="30" as="offset" />
+            <Array as="points">
+              <mxPoint x="2845" y="2230" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="MaNm-4JizXrRygC56yzw-54" value="LDR oscuro (flanco) [luz &amp;lt; 500] /&lt;br&gt;piezas++, SPI PISTON=1" style="endArrow=block;endFill=1;html=1;curved=1;fontSize=11;labelBackgroundColor=#FFFFFF;exitX=0.3;exitY=0;exitDx=0;exitDy=0;entryX=0.7;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="MaNm-4JizXrRygC56yzw-42" target="MaNm-4JizXrRygC56yzw-42">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint y="-25" as="offset" />
+            <Array as="points">
+              <mxPoint x="3020" y="2055" />
+              <mxPoint x="3110" y="2055" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="MaNm-4JizXrRygC56yzw-55" value="[ T ≥ 28 °C] /&lt;br&gt;en_marcha=0, SPI ALARM=1" style="endArrow=block;endFill=1;html=1;curved=1;fontSize=11;labelBackgroundColor=#FFFFFF;exitX=0.5;exitY=1;exitDx=0;exitDy=0;" edge="1" parent="1" source="MaNm-4JizXrRygC56yzw-42" target="MaNm-4JizXrRygC56yzw-46">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="3040" y="2480" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="MaNm-4JizXrRygC56yzw-56" value="[ T ≤ 26 °C] /&lt;br&gt;en_marcha=0, SPI ALARM=0" style="endArrow=block;endFill=1;html=1;curved=1;fontSize=11;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="MaNm-4JizXrRygC56yzw-46" target="MaNm-4JizXrRygC56yzw-38">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="2650" y="2480" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="MaNm-4JizXrRygC56yzw-58" value="SPI (SS, MOSI, SCK)&amp;nbsp;" style="endArrow=open;endFill=0;dashed=1;html=1;rounded=0;strokeWidth=2;fontSize=11;fontStyle=1;labelBackgroundColor=#FFFFFF;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="MaNm-4JizXrRygC56yzw-30" target="MaNm-4JizXrRygC56yzw-59">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="MaNm-4JizXrRygC56yzw-59" value="ARDUINO ESCLAVO (motor DC, servo-pistón, indicadores)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#000000;verticalAlign=top;align=left;spacingLeft=10;spacingTop=6;fontStyle=1;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="2060" y="2740" width="1240" height="800" as="geometry" />
+        </mxCell>
+        <mxCell id="MaNm-4JizXrRygC56yzw-60" value="SIN FALLA (falla = 0)" style="rounded=1;arcSize=3;dashed=1;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#000000;verticalAlign=top;align=left;spacingLeft=10;spacingTop=4;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="2210" y="2800" width="1060" height="320" as="geometry" />
+        </mxCell>
+        <mxCell id="MaNm-4JizXrRygC56yzw-61" value="" style="ellipse;fillColor=#000000;strokeColor=#000000;html=1;" vertex="1" parent="1">
+          <mxGeometry x="2100" y="2970" width="20" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="MaNm-4JizXrRygC56yzw-62" value="Al encender /&lt;br&gt;init PWM motor,&lt;br&gt;servo, SPI esclavo,&lt;br&gt;Timer2" style="text;html=1;align=center;verticalAlign=bottom;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="2065" y="2895" width="130" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="MaNm-4JizXrRygC56yzw-63" value="" style="ellipse;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="2260" y="2900" width="210" height="160" as="geometry" />
+        </mxCell>
+        <mxCell id="MaNm-4JizXrRygC56yzw-64" value="PARADO" style="text;html=1;align=center;verticalAlign=middle;fontStyle=1;fontSize=12;" connectable="0" vertex="1" parent="MaNm-4JizXrRygC56yzw-63">
+          <mxGeometry x="10" y="24" width="190" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="MaNm-4JizXrRygC56yzw-65" value="" style="line;strokeWidth=1;html=1;" connectable="0" vertex="1" parent="MaNm-4JizXrRygC56yzw-63">
+          <mxGeometry x="8" y="48" width="194" height="10" as="geometry" />
+        </mxCell>
+        <mxCell id="MaNm-4JizXrRygC56yzw-66" value="MOTOR = 0 (IN1=IN2=0)&lt;br&gt;SERVO = reposo (1 ms)&lt;br&gt;LED_VERDE = 0&lt;br&gt;LED_ROJO = 0&lt;br&gt;BUZZER = 0" style="text;html=1;align=center;verticalAlign=top;fontSize=11;" connectable="0" vertex="1" parent="MaNm-4JizXrRygC56yzw-63">
+          <mxGeometry x="10" y="58" width="190" height="85" as="geometry" />
+        </mxCell>
+        <mxCell id="MaNm-4JizXrRygC56yzw-67" value="" style="ellipse;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="2640" y="2900" width="210" height="160" as="geometry" />
+        </mxCell>
+        <mxCell id="MaNm-4JizXrRygC56yzw-68" value="MOTOR_ON" style="text;html=1;align=center;verticalAlign=middle;fontStyle=1;fontSize=12;" connectable="0" vertex="1" parent="MaNm-4JizXrRygC56yzw-67">
+          <mxGeometry x="10" y="24" width="190" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="MaNm-4JizXrRygC56yzw-69" value="" style="line;strokeWidth=1;html=1;" connectable="0" vertex="1" parent="MaNm-4JizXrRygC56yzw-67">
+          <mxGeometry x="8" y="48" width="194" height="10" as="geometry" />
+        </mxCell>
+        <mxCell id="MaNm-4JizXrRygC56yzw-70" value="MOTOR = PWM (pwm_deseado)&lt;br&gt;SERVO = reposo (1 ms)&lt;br&gt;LED_VERDE = 1&lt;br&gt;LED_ROJO = 0&lt;br&gt;BUZZER = 0" style="text;html=1;align=center;verticalAlign=top;fontSize=11;" connectable="0" vertex="1" parent="MaNm-4JizXrRygC56yzw-67">
+          <mxGeometry x="10" y="58" width="190" height="85" as="geometry" />
+        </mxCell>
+        <mxCell id="MaNm-4JizXrRygC56yzw-71" value="" style="ellipse;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="3020" y="2900" width="210" height="160" as="geometry" />
+        </mxCell>
+        <mxCell id="MaNm-4JizXrRygC56yzw-72" value="PISTON-SERVO" style="text;html=1;align=center;verticalAlign=middle;fontStyle=1;fontSize=12;" connectable="0" vertex="1" parent="MaNm-4JizXrRygC56yzw-71">
+          <mxGeometry x="10" y="24" width="190" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="MaNm-4JizXrRygC56yzw-73" value="" style="line;strokeWidth=1;html=1;" connectable="0" vertex="1" parent="MaNm-4JizXrRygC56yzw-71">
+          <mxGeometry x="8" y="48" width="194" height="10" as="geometry" />
+        </mxCell>
+        <mxCell id="MaNm-4JizXrRygC56yzw-74" value="MOTOR = PWM (pwm_deseado)&lt;br&gt;SERVO = extendido (2 ms)&lt;br&gt;LED_VERDE = 1&lt;br&gt;LED_ROJO = 0&lt;br&gt;BUZZER = 0" style="text;html=1;align=center;verticalAlign=top;fontSize=11;" connectable="0" vertex="1" parent="MaNm-4JizXrRygC56yzw-71">
+          <mxGeometry x="10" y="58" width="190" height="85" as="geometry" />
+        </mxCell>
+        <mxCell id="MaNm-4JizXrRygC56yzw-75" value="" style="ellipse;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="2640" y="3200" width="210" height="160" as="geometry" />
+        </mxCell>
+        <mxCell id="MaNm-4JizXrRygC56yzw-76" value="FALLA" style="text;html=1;align=center;verticalAlign=middle;fontStyle=1;fontSize=12;" connectable="0" vertex="1" parent="MaNm-4JizXrRygC56yzw-75">
+          <mxGeometry x="10" y="24" width="190" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="MaNm-4JizXrRygC56yzw-77" value="" style="line;strokeWidth=1;html=1;" connectable="0" vertex="1" parent="MaNm-4JizXrRygC56yzw-75">
+          <mxGeometry x="8" y="48" width="194" height="10" as="geometry" />
+        </mxCell>
+        <mxCell id="MaNm-4JizXrRygC56yzw-78" value="MOTOR = 0 (IN1=IN2=0)&lt;br&gt;SERVO = reposo (1 ms)&lt;br&gt;LED_VERDE = 0&lt;br&gt;LED_ROJO = 1&lt;br&gt;BUZZER = 1" style="text;html=1;align=center;verticalAlign=top;fontSize=11;" connectable="0" vertex="1" parent="MaNm-4JizXrRygC56yzw-75">
+          <mxGeometry x="10" y="58" width="190" height="85" as="geometry" />
+        </mxCell>
+        <mxCell id="MaNm-4JizXrRygC56yzw-79" value="" style="endArrow=block;endFill=1;html=1;rounded=0;" edge="1" parent="1" source="MaNm-4JizXrRygC56yzw-61" target="MaNm-4JizXrRygC56yzw-63">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="MaNm-4JizXrRygC56yzw-80" value="SPI RUN=1" style="endArrow=block;endFill=1;html=1;curved=1;fontSize=11;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="MaNm-4JizXrRygC56yzw-63" target="MaNm-4JizXrRygC56yzw-67">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint y="-20" as="offset" />
+            <Array as="points">
+              <mxPoint x="2555" y="2935" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="MaNm-4JizXrRygC56yzw-81" value="SPI RUN=0 /&lt;br&gt;OCR0A=0" style="endArrow=block;endFill=1;html=1;curved=1;fontSize=11;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="MaNm-4JizXrRygC56yzw-67" target="MaNm-4JizXrRygC56yzw-63">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint y="25" as="offset" />
+            <Array as="points">
+              <mxPoint x="2555" y="3025" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="MaNm-4JizXrRygC56yzw-82" value="SPI PISTON=1 /&lt;br&gt;OCR1A=2 ms,&lt;br&gt;piston_inicio=t" style="endArrow=block;endFill=1;html=1;curved=1;fontSize=11;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="MaNm-4JizXrRygC56yzw-67" target="MaNm-4JizXrRygC56yzw-71">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint y="-30" as="offset" />
+            <Array as="points">
+              <mxPoint x="2935" y="2935" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="MaNm-4JizXrRygC56yzw-83" value="[t − piston_inicio ≥ 500 ms] /&lt;br&gt;OCR1A=1 ms" style="endArrow=block;endFill=1;html=1;curved=1;fontSize=11;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="MaNm-4JizXrRygC56yzw-71" target="MaNm-4JizXrRygC56yzw-67">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint y="25" as="offset" />
+            <Array as="points">
+              <mxPoint x="2935" y="3025" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="MaNm-4JizXrRygC56yzw-84" value="SPI RUN=0 / OCR0A=0 (el servo vuelve a reposo al cumplir 500 ms)" style="endArrow=block;endFill=1;html=1;curved=1;fontSize=11;labelBackgroundColor=#FFFFFF;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" edge="1" parent="1" source="MaNm-4JizXrRygC56yzw-71" target="MaNm-4JizXrRygC56yzw-63">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="3125" y="3100" />
+              <mxPoint x="2365" y="3100" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="MaNm-4JizXrRygC56yzw-85" value="SPI ALARM=1 /&lt;br&gt;marcha=0, piston_activo=0,&lt;br&gt;OCR1A=1 ms" style="endArrow=block;endFill=1;html=1;curved=1;fontSize=11;labelBackgroundColor=#FFFFFF;exitX=0.75;exitY=1;exitDx=0;exitDy=0;" edge="1" parent="1" source="MaNm-4JizXrRygC56yzw-60" target="MaNm-4JizXrRygC56yzw-75">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="3010" y="3250" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="MaNm-4JizXrRygC56yzw-86" value="SPI ALARM=0 /&lt;br&gt;marcha=0" style="endArrow=block;endFill=1;html=1;curved=1;fontSize=11;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="MaNm-4JizXrRygC56yzw-75" target="MaNm-4JizXrRygC56yzw-63">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="2490" y="3260" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="MaNm-4JizXrRygC56yzw-91" value="OCR1A=Registro de Comparación A del Temporizador 1" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="2100" y="3400" width="320" height="30" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
