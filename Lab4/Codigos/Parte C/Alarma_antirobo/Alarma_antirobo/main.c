@@ -61,6 +61,7 @@ static const char *const state_name[]  = { "DESARMADO", "ARMADO", "ALARMA", "SIL
 static const char *const state_lcd[]   = { "DESARM.", "ARMADO", "ALARMA!", "SILENC." };
 static const char *const zone_name[]   = { "NINGUNA", "VENTANA", "MOVIMIENTO", "REMOTO" };
 static const char *const zone_lcd[]    = { "NINGUNA", "VENTANA", "MOVIM.", "REMOTO" };
+
 //VARIABLES GLOBALES
 static volatile uint32_t g_millis = 0;
 
@@ -105,3 +106,50 @@ static void update_outputs(uint32_t now);
 static void lcd_refresh(void);
 #endif
 static void io_init(void);
+
+
+// IMPLEMENTACION DE FUNCIONES 
+
+ISR(TIMER0_COMPA_vect) {
+	g_millis++;
+}
+
+static void timer0_init(void) {
+	TCCR0A = (1 << WGM01);                 // CTC 
+	TCCR0B = (1 << CS01) | (1 << CS00);    // prescaler 64 -> 250 kHz
+	OCR0A  = 249;                          // 250 ticks = 1 ms 
+	TIMSK0 = (1 << OCIE0A);
+}
+
+static uint32_t millis(void) {
+	uint32_t m;
+	uint8_t s = SREG;
+	cli();
+	m = g_millis;
+	SREG = s;
+	return m;
+}
+
+
+// UART RX por interrupcion 
+ISR(USART_RX_vect) {
+	uint8_t d = UDR0;
+	uint8_t next = (rx_head + 1) % RX_BUF_SIZE;
+	if (next != rx_tail) {
+		rx_buf[rx_head] = d;
+		rx_head = next;
+	}
+}
+
+//  ADC 
+static void adc_init(void) {
+	ADMUX  = (1 << REFS0);                    // AVcc como referencia
+	ADCSRA = (1 << ADEN) | (1 << ADPS2) | (1 << ADPS1) | (1 << ADPS0); // 128 
+}
+
+static uint16_t adc_read(uint8_t ch) {
+	ADMUX = (ADMUX & 0xF0) | (ch & 0x0F);
+	ADCSRA |= (1 << ADSC);
+	while (ADCSRA & (1 << ADSC));
+	return ADC;
+}
