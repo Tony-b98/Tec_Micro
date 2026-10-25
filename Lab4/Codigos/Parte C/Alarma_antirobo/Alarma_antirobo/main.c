@@ -153,3 +153,88 @@ static uint16_t adc_read(uint8_t ch) {
 	while (ADCSRA & (1 << ADSC));
 	return ADC;
 }
+// TRAMAS HACIA EL CELULAR 
+static void send_status(void) {
+	uart_print("ALARMA:");
+	uart_print(state == ST_ALARMA ? "ON" : "OFF");
+	uart_print(";ZONA:");
+	uart_print(zone_name[zone]);
+	uart_print(";ESTADO:");
+	uart_print(state_name[state]);
+	uart_print(";MODO:");
+	uart_print(mode == MODE_AUTO ? "AUTO" : "MANUAL");
+	uart_print("\r\n");
+}
+
+//MAQUINA DE ESTADOS 
+static void set_state(state_t s) {
+	state = s;
+	if (s == ST_ARMADO) {
+		ldr_cnt = 0;            //si ya hay un sensor activo, genera evento al armar 
+		pir_cnt = 0;
+		zone = ZONE_NONE;
+		} else if (s == ST_DESARMADO) {
+		zone = ZONE_NONE;
+	}
+	lcd_dirty = 1;
+	send_status();
+}
+
+// Evento de intrusion detectado por un sensor (solo llega en estado ARMADO) 
+static void on_event(zone_t z) {
+	zone = z;
+	lcd_dirty = 1;
+	if (mode == MODE_AUTO) {
+		set_state(ST_ALARMA);       //AUTO: la planta dispara sola y notifica 
+		} else {
+		uart_print("EVENTO:DETECTADO;ZONA:");   //MANUAL: solo avisa, decide el operador 
+		uart_print(zone_name[z]);
+		uart_print("\r\n");
+	}
+}
+
+// Comandos: los usan tanto el Bluetooth como los botones 
+static void handle_command(cmd_t cmd) {
+	switch (cmd) {
+		case CMD_ARM:
+		if (state == ST_DESARMADO || state == ST_SILENCIADA) set_state(ST_ARMADO);
+		else send_status();
+		break;
+
+		case CMD_DISARM:
+		if (state != ST_DESARMADO) set_state(ST_DESARMADO);
+		else send_status();
+		break;
+
+		case CMD_SILENCE:
+		if (state == ST_ALARMA) set_state(ST_SILENCIADA);   //sigue armado, sin sirena 
+		else send_status();
+		break;
+
+		case CMD_AUTO:
+		mode = MODE_AUTO;
+		lcd_dirty = 1;
+		send_status();
+		break;
+
+		case CMD_MANUAL:
+		mode = MODE_MANUAL;
+		lcd_dirty = 1;
+		send_status();
+		break;
+
+		case CMD_FORCE:
+		if (state != ST_ALARMA) {
+			zone = ZONE_REMOTE;
+			set_state(ST_ALARMA);
+			} else {
+			send_status();
+		}
+		break;
+
+		case CMD_STATUS:
+		default:
+		send_status();
+		break;
+	}
+}
