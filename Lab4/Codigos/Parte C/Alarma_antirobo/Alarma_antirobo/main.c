@@ -238,3 +238,104 @@ static void handle_command(cmd_t cmd) {
 		break;
 	}
 }
+//  PROCESAMIENTO DE TRAMAS RECIBIDAS 
+static void process_line(const char *l) {
+	cmd_t cmd;
+
+	if      (!strcmp(l, "ARMAR"))     cmd = CMD_ARM;
+	else if (!strcmp(l, "DESARMAR"))  cmd = CMD_DISARM;
+	else if (!strcmp(l, "SILENCIAR")) cmd = CMD_SILENCE;
+	else if (!strcmp(l, "AUTO"))      cmd = CMD_AUTO;
+	else if (!strcmp(l, "MANUAL"))    cmd = CMD_MANUAL;
+	else if (!strcmp(l, "FORZAR"))    cmd = CMD_FORCE;
+	else if (!strcmp(l, "ESTADO"))    cmd = CMD_STATUS;
+	else {
+		uart_print("ERR:COMANDO\r\n");
+		return;
+	}
+
+	strncpy(last_rx, l, 3);         // ultimos 3 caracteres recibidos para el LCD 
+	last_rx[3] = '\0';
+	uart_print("ACK:");
+	uart_print(l);
+	uart_print("\r\n");
+	handle_command(cmd);
+	lcd_dirty = 1;
+}
+
+static void bt_poll(void) {
+	while (rx_tail != rx_head) {
+		char c = (char)rx_buf[rx_tail];
+		rx_tail = (rx_tail + 1) % RX_BUF_SIZE;
+
+		if (c == '\r' || c == '\n') {
+			if (line_len > 0) {
+				line[line_len] = '\0';
+				process_line(line);
+				line_len = 0;
+			}
+			} else if (line_len < LINE_MAX_LEN - 1) {
+			line[line_len++] = (char)toupper((unsigned char)c);
+		}
+	}
+}
+
+//   SENSORES Y BOTONES 
+static uint8_t debounce(uint8_t active, uint8_t *cnt) {
+	// Devuelve 1 solo en el flanco de validacion (rising edge confirmado) 
+	if (!active) {
+		*cnt = 0;
+		return 0;
+	}
+	if (*cnt < 255) (*cnt)++;
+	return (*cnt == SENSOR_CONFIRM);
+}
+
+static uint8_t pir_active(void) {
+	#if PIR_ACTIVE_HIGH
+	return (PIND & (1 << PIR_PIN)) != 0;
+	#else
+	return (PIND & (1 << PIR_PIN)) == 0;
+	#endif
+}
+
+static uint8_t ldr_open(void) {
+	uint16_t v = adc_read(LDR_CH);
+	#if LDR_OPEN_WHEN_BRIGHT
+	return v > LDR_THRESHOLD;
+	#else
+	return v < LDR_THRESHOLD;
+	#endif
+}
+
+static void sensors_poll(void) {
+	if (state == ST_ARMADO) {
+		if (debounce(ldr_open(), &ldr_cnt)) on_event(ZONE_WINDOW);
+		if (state == ST_ARMADO && debounce(pir_active(), &pir_cnt)) on_event(ZONE_MOTION);
+		} else {
+		ldr_cnt = 0;
+		pir_cnt = 0;
+	}
+}
+
+static uint8_t edge(uint8_t now, uint8_t *prev) {
+	uint8_t e = now && !*prev;
+	*prev = now;
+	return e;
+}
+
+static void buttons_poll(void) {
+	uint8_t arm  = !(PIND & (1 << BTN_ARM_PIN));
+	uint8_t sil  = !(PIND & (1 << BTN_SIL_PIN));
+	uint8_t mod  = !(PINB & (1 << BTN_MODE_PIN));
+
+	if (edge(arm, &prev_arm)) {
+		handle_command(state == ST_DESARMADO ? CMD_ARM : CMD_DISARM);
+	}
+	if (edge(sil, &prev_sil)) {
+		handle_command(CMD_SILENCE);
+	}
+	if (edge(mod, &prev_mode)) {
+		handle_command(mode == MODE_AUTO ? CMD_MANUAL : CMD_AUTO);
+	}
+}
