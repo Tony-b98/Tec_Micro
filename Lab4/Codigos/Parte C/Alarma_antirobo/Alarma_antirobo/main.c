@@ -339,3 +339,62 @@ static void buttons_poll(void) {
 		handle_command(mode == MODE_AUTO ? CMD_MANUAL : CMD_AUTO);
 	}
 }
+
+// SALIDAS (LEDs y buzzer) 
+static void update_outputs(uint32_t now) {
+	uint8_t blink = (now / 250) & 1;
+
+	switch (state) {
+		case ST_DESARMADO:
+		PORTD &= ~((1 << LED_G_PIN) | (1 << LED_R_PIN) | (1 << BUZ_PIN));
+		break;
+
+		case ST_ARMADO:
+		PORTD |=  (1 << LED_G_PIN);
+		PORTD &= ~((1 << LED_R_PIN) | (1 << BUZ_PIN));
+		break;
+
+		case ST_ALARMA:
+		PORTD &= ~(1 << LED_G_PIN);
+		PORTD |=  (1 << BUZ_PIN);
+		if (blink) PORTD |= (1 << LED_R_PIN);
+		else       PORTD &= ~(1 << LED_R_PIN);
+		break;
+
+		case ST_SILENCIADA:
+		PORTD |=  (1 << LED_G_PIN) | (1 << LED_R_PIN);   // armado + alarma memorizada 
+		PORTD &= ~(1 << BUZ_PIN);
+		break;
+	}
+}
+
+// LCD 
+#if USE_LCD
+static void lcd_refresh(void) {
+	char b[20];
+
+	snprintf(b, sizeof(b), "%-7s %-8s", state_lcd[state], mode == MODE_AUTO ? "AUTO" : "MANUAL");
+	twi_lcd_cmd(0x80);
+	twi_lcd_msg(b);
+
+	snprintf(b, sizeof(b), "Z:%-7s RX:%-3s", zone_lcd[zone], last_rx);
+	twi_lcd_cmd(0xC0);
+	twi_lcd_msg(b);
+}
+#endif
+
+//  INICIALIZACION 
+static void io_init(void) {
+	// Salidas: LED verde, LED rojo, buzzer 
+	DDRD |= (1 << LED_G_PIN) | (1 << LED_R_PIN) | (1 << BUZ_PIN);
+	PORTD &= ~((1 << LED_G_PIN) | (1 << LED_R_PIN) | (1 << BUZ_PIN));
+
+	// Entradas: PIR y botones 
+	DDRD &= ~((1 << PIR_PIN) | (1 << BTN_ARM_PIN) | (1 << BTN_SIL_PIN));
+	PORTD |= (1 << BTN_ARM_PIN) | (1 << BTN_SIL_PIN);
+	#if !PIR_ACTIVE_HIGH
+	PORTD |= (1 << PIR_PIN);
+	#endif
+	DDRB &= ~(1 << BTN_MODE_PIN);
+	PORTB |= (1 << BTN_MODE_PIN);
+}
