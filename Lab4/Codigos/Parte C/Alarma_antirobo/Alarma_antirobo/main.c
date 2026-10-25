@@ -398,3 +398,53 @@ static void io_init(void) {
 	DDRB &= ~(1 << BTN_MODE_PIN);
 	PORTB |= (1 << BTN_MODE_PIN);
 }
+// PROGRAMA PRINCIPAL 
+int main(void) {
+	io_init();
+	adc_init();
+	timer0_init();
+
+	uart_init(MY_UBRR);
+	UCSR0B |= (1 << RXCIE0);        // habilitar interrupcion de recepcion
+
+	#if USE_LCD
+	twi_init();                     // ojo: twi_init pone PC0/PC1 como salida -> LDR en PC2 
+	twi_lcd_init();
+	#endif
+
+	sei();
+
+	uart_print("SISTEMA:ALARMA LISTO\r\n");
+	send_status();
+
+	uint32_t t_sensor = 0, t_status = 0, t_lcd = 0;
+
+	while (1) {
+		uint32_t now = millis();
+
+		bt_poll();
+
+		if (now - t_sensor >= SENSOR_PERIOD_MS) {
+			t_sensor = now;
+			sensors_poll();
+			buttons_poll();
+		}
+
+		update_outputs(now);
+
+		if (now - t_status >= STATUS_PERIOD_MS) {
+			t_status = now;
+			send_status();
+		}
+
+		#if USE_LCD
+		if (lcd_dirty && (now - t_lcd >= LCD_MIN_PERIOD_MS)) {
+			t_lcd = now;
+			lcd_dirty = 0;
+			lcd_refresh();
+		}
+		#endif
+	}
+
+	return 0;
+}
