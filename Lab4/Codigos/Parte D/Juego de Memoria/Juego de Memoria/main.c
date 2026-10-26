@@ -352,3 +352,78 @@ static void guardar_progreso(estado_t estado,uint8_t nivel,uint16_t record)
 	eeprom_update_word(&ee_record,record);
 }
 
+// PROGRAMA PRINCIPAL
+int main(void)
+{
+	uint8_t x=3, y=3, color=ROJO, nivel=1, longitud=0, paso=0;
+	uint8_t evento, redibujar=1;
+	uint16_t record;
+	estado_t estado=ST_LIBRE;
+
+	uart_init(103); // 9600 bps a 16 MHz 
+	perifericos_init();
+	adc_init();
+	tono_init();
+	matriz_limpiar();
+	matriz_enviar();
+
+	record=eeprom_read_word(&ee_record);
+	if(record==0xFFFF) record=0;
+	uart_print("\r\n=== SIMON DICE ====\r\n");
+	mostrar_numero("Record historico: ",record);
+	mostrar_numero("Ultimo nivel guardado: ",eeprom_read_byte(&ee_nivel));
+	mostrar_numero("Ultimo estado guardado: ",eeprom_read_byte(&ee_estado));
+
+	// No tocar el joystick durante el arranque: se mide su centro.
+	joystick_calibrar();
+	mostrar_numero("Centro X: ",(uint16_t)centro_x);
+	mostrar_numero("Centro Y: ",(uint16_t)centro_y);
+	mostrar_numero("Zona muerta: ",(uint16_t)zona_muerta);
+
+	uart_print("LIBRE: SW corto cambia color, SW largo inicia\r\n");
+	uart_print("JUEGO: SW confirma la posicion del cursor\r\n");
+	//El ADC libre puede variar entre encendidos; no es aleatoriedad criptografica. 
+	srand((unsigned int)adc_read(2) ^ (unsigned int)adc_read(3));
+	guardar_progreso(estado,nivel,record);
+
+	for(;;)
+	{
+		#if DEBUG_ADC
+		{
+			static uint16_t latido = 0;
+			if(++latido >= 300)
+			{
+				latido = 0;
+				mostrar_numero("X: ", adc_read(JOY_X));
+				mostrar_numero("Y: ", adc_read(JOY_Y));
+			}
+		}
+		#endif
+		if(reinicio_pendiente)
+		{
+			reiniciar_partida(&x,&y,&color,&nivel,&longitud,&paso,
+			&redibujar,&estado,record);
+			continue;
+		}
+		switch(estado)
+		{
+			case ST_LIBRE:
+			if(redibujar) { dibujar_cursor(x,y,color); redibujar=0; }
+			if(mover_cursor(&x,&y)) dibujar_cursor(x,y,color);
+			evento=boton_evento();
+			if(evento==1)
+			{
+				color=color_aleatorio(color);
+				tono_on(frecuencias[color]); _delay_ms(90); tono_off();
+				dibujar_cursor(x,y,color);
+				mostrar_numero("Color libre: ",color);
+			}
+			else if(evento==2)
+			{
+				nivel=1; longitud=3; paso=0;
+				generar_secuencia(longitud);
+				estado=ST_SHOW;
+				guardar_progreso(estado,nivel,record);
+				mostrar_numero("Inicia nivel: ",nivel);
+			}
+			break;
