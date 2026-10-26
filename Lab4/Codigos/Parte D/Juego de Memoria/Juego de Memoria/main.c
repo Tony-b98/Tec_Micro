@@ -84,6 +84,185 @@ static void mostrar_numero(const char *etiqueta,uint16_t numero);
 static void guardar_progreso(estado_t estado,uint8_t nivel,uint16_t record);
 
 
+// PROGRAMA PRINCIPAL
+int main(void)
+{
+	uint8_t x=3, y=3, color=ROJO, nivel=1, longitud=0, paso=0;
+	uint8_t evento, redibujar=1;
+	uint16_t record;
+	estado_t estado=ST_LIBRE;
+
+	uart_init(103); // 9600 bps a 16 MHz
+	perifericos_init();
+	adc_init();
+	tono_init();
+	matriz_limpiar();
+	matriz_enviar();
+
+	record=eeprom_read_word(&ee_record);
+	if(record==0xFFFF) record=0;
+	uart_print("\r\n=== SIMON DICE ====\r\n");
+	mostrar_numero("Record historico: ",record);
+	mostrar_numero("Ultimo nivel guardado: ",eeprom_read_byte(&ee_nivel));
+	mostrar_numero("Ultimo estado guardado: ",eeprom_read_byte(&ee_estado));
+
+	// No tocar el joystick durante el arranque: se mide su centro.
+	joystick_calibrar();
+	mostrar_numero("Centro X: ",(uint16_t)centro_x);
+	mostrar_numero("Centro Y: ",(uint16_t)centro_y);
+	mostrar_numero("Zona muerta: ",(uint16_t)zona_muerta);
+
+	uart_print("LIBRE: SW corto cambia color, SW largo inicia\r\n");
+	uart_print("JUEGO: SW confirma la posicion del cursor\r\n");
+	//El ADC libre puede variar entre encendidos; no es aleatoriedad criptografica.
+	srand((unsigned int)adc_read(2) ^ (unsigned int)adc_read(3));
+	guardar_progreso(estado,nivel,record);
+
+	for(;;)
+	{
+		#if DEBUG_ADC
+		{
+			static uint16_t latido = 0;
+			if(++latido >= 300)
+			{
+				latido = 0;
+				mostrar_numero("X: ", adc_read(JOY_X));
+				mostrar_numero("Y: ", adc_read(JOY_Y));
+			}
+		}
+		#endif
+		if(reinicio_pendiente)
+		{
+			reiniciar_partida(&x,&y,&color,&nivel,&longitud,&paso,
+			&redibujar,&estado,record);
+			continue;
+		}
+		switch(estado)
+		{
+			case ST_LIBRE:
+			if(redibujar) { dibujar_cursor(x,y,color); redibujar=0; }
+			if(mover_cursor(&x,&y)) dibujar_cursor(x,y,color);
+			evento=boton_evento();
+			if(evento==1)
+			{
+				color=color_aleatorio(color);
+				tono_on(frecuencias[color]); _delay_ms(90); tono_off();
+				dibujar_cursor(x,y,color);
+				mostrar_numero("Color libre: ",color);
+			}
+			else if(evento==2)
+			{
+				nivel=1; longitud=3; paso=0;
+				generar_secuencia(longitud);
+				estado=ST_SHOW;
+				guardar_progreso(estado,nivel,record);
+				mostrar_numero("Inicia nivel: ",nivel);
+			}
+			break;
+			
+		 case ST_SHOW:
+			 reproducir_secuencia(longitud);
+			 paso=0; x=3; y=3; /* el cursor conserva el color elegido */
+			 dibujar_juego(x,y,color,paso);
+			 estado=ST_PLAY;
+			 guardar_progreso(estado,nivel,record);
+			 uart_print("Tu turno: repeti las posiciones\r\n");
+			 break;
+
+		 case ST_PLAY:
+			 if(mover_cursor(&x,&y)) dibujar_juego(x,y,color,paso);
+			 evento=boton_evento();
+			 if(evento!=0) /* pulsacion corta o larga: confirma posicion */
+			 {
+				 if(POS(x,y)==seq_pos[paso])
+				 {
+					 /* Acierto parcial: tono del color de ese paso. */
+					 tono_on(frecuencias[seq_color[paso]]); _delay_ms(120); tono_off();
+					 paso++;
+					 if(paso>=longitud)
+					 {
+						 estado=ST_OK;
+						 guardar_progreso(estado,nivel,record);
+					 }
+					 else dibujar_juego(x,y,color,paso);
+				 }
+				 else
+				 {
+					 estado=ST_ERROR;
+					 guardar_progreso(estado,nivel,record);
+				 }
+			 }
+		 break;
+
+		 case ST_OK:
+			 animacion_acierto();
+			 mostrar_numero("Nivel superado: ",nivel);
+			 if(nivel>record)
+			 {
+				 record=nivel;
+				 eeprom_update_word(&ee_record,record);
+				 mostrar_numero("Nuevo record: ",record);
+			 }
+			 if(longitud>=MAX_SEQ)
+			 {
+				 animacion_victoria();
+				 uart_print("JUEGO COMPLETADO!\r\n");
+				 estado=ST_LIBRE; nivel=1; redibujar=1;
+			 }
+			 else
+			 {
+				 nivel++;
+				 longitud++;
+				 /* Conservar la secuencia anterior y agregar UN paso. */
+				 seq_pos[longitud-1]=(uint8_t)(rand()%64);
+				 seq_color[longitud-1]=(uint8_t)(rand()%NCOLOR);
+				 /* Modo libre entre niveles. */
+				 x=3; y=3; redibujar=1;
+				 estado=ST_PAUSA;
+				 uart_print("Entre niveles: SW corto cambia color, SW largo sigue\r\n");
+			 }
+			 guardar_progreso(estado,nivel,record);
+			break;
+
+		 case ST_PAUSA: /* modo libre entre niveles */
+			 if(redibujar) { dibujar_cursor(x,y,color); redibujar=0; }
+			 if(mover_cursor(&x,&y)) dibujar_cursor(x,y,color);
+			 evento=boton_evento();
+			 if(evento==1)
+			 {
+				 color=color_aleatorio(color);
+				 tono_on(frecuencias[color]); _delay_ms(90); tono_off();
+				 dibujar_cursor(x,y,color);
+				 mostrar_numero("Color libre: ",color);
+			 }
+			 else if(evento==2)
+			 {
+				 estado=ST_SHOW;
+				 guardar_progreso(estado,nivel,record);
+				 mostrar_numero("Inicia nivel: ",nivel);
+			 }
+		 break;
+
+		 case ST_ERROR:
+			 animacion_error();
+			 mostrar_numero("Error en nivel: ",nivel);
+			 mostrar_numero("Record: ",record);
+			 uart_print("Fin de partida; vuelve al nivel 1\r\n");
+			 nivel=1; x=3; y=3; color=ROJO;
+			 estado=ST_LIBRE; redibujar=1;
+			 guardar_progreso(estado,nivel,record);
+			 break;
+
+			 default:
+			 estado=ST_LIBRE; redibujar=1;
+			 break;
+		}
+	}
+}
+
+
+
+
 // IMPLEMENTACION DE FUNCIONES
 
 ISR(PCINT2_vect)
@@ -352,78 +531,3 @@ static void guardar_progreso(estado_t estado,uint8_t nivel,uint16_t record)
 	eeprom_update_word(&ee_record,record);
 }
 
-// PROGRAMA PRINCIPAL
-int main(void)
-{
-	uint8_t x=3, y=3, color=ROJO, nivel=1, longitud=0, paso=0;
-	uint8_t evento, redibujar=1;
-	uint16_t record;
-	estado_t estado=ST_LIBRE;
-
-	uart_init(103); // 9600 bps a 16 MHz 
-	perifericos_init();
-	adc_init();
-	tono_init();
-	matriz_limpiar();
-	matriz_enviar();
-
-	record=eeprom_read_word(&ee_record);
-	if(record==0xFFFF) record=0;
-	uart_print("\r\n=== SIMON DICE ====\r\n");
-	mostrar_numero("Record historico: ",record);
-	mostrar_numero("Ultimo nivel guardado: ",eeprom_read_byte(&ee_nivel));
-	mostrar_numero("Ultimo estado guardado: ",eeprom_read_byte(&ee_estado));
-
-	// No tocar el joystick durante el arranque: se mide su centro.
-	joystick_calibrar();
-	mostrar_numero("Centro X: ",(uint16_t)centro_x);
-	mostrar_numero("Centro Y: ",(uint16_t)centro_y);
-	mostrar_numero("Zona muerta: ",(uint16_t)zona_muerta);
-
-	uart_print("LIBRE: SW corto cambia color, SW largo inicia\r\n");
-	uart_print("JUEGO: SW confirma la posicion del cursor\r\n");
-	//El ADC libre puede variar entre encendidos; no es aleatoriedad criptografica. 
-	srand((unsigned int)adc_read(2) ^ (unsigned int)adc_read(3));
-	guardar_progreso(estado,nivel,record);
-
-	for(;;)
-	{
-		#if DEBUG_ADC
-		{
-			static uint16_t latido = 0;
-			if(++latido >= 300)
-			{
-				latido = 0;
-				mostrar_numero("X: ", adc_read(JOY_X));
-				mostrar_numero("Y: ", adc_read(JOY_Y));
-			}
-		}
-		#endif
-		if(reinicio_pendiente)
-		{
-			reiniciar_partida(&x,&y,&color,&nivel,&longitud,&paso,
-			&redibujar,&estado,record);
-			continue;
-		}
-		switch(estado)
-		{
-			case ST_LIBRE:
-			if(redibujar) { dibujar_cursor(x,y,color); redibujar=0; }
-			if(mover_cursor(&x,&y)) dibujar_cursor(x,y,color);
-			evento=boton_evento();
-			if(evento==1)
-			{
-				color=color_aleatorio(color);
-				tono_on(frecuencias[color]); _delay_ms(90); tono_off();
-				dibujar_cursor(x,y,color);
-				mostrar_numero("Color libre: ",color);
-			}
-			else if(evento==2)
-			{
-				nivel=1; longitud=3; paso=0;
-				generar_secuencia(longitud);
-				estado=ST_SHOW;
-				guardar_progreso(estado,nivel,record);
-				mostrar_numero("Inicia nivel: ",nivel);
-			}
-			break;
