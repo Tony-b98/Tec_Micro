@@ -52,3 +52,70 @@ static uint8_t EEMEM ee_nivel = 1;
 static uint8_t EEMEM ee_estado = ST_LIBRE;
 static volatile uint8_t reinicio_pendiente = 0;
 static int16_t centro_x = 512, centro_y = 512, zona_muerta = 140;
+
+// PROTOTIPOS DE FUNCIONES 
+
+static void perifericos_init(void);
+static void reiniciar_partida(uint8_t *x,uint8_t *y,uint8_t *color,
+uint8_t *nivel,uint8_t *longitud,uint8_t *paso,
+uint8_t *redibujar,estado_t *estado,uint16_t record);
+static void adc_init(void);
+static uint16_t adc_read(uint8_t canal);
+static void joystick_calibrar(void);
+static dir_t joystick_dir(void);
+static uint8_t mover_cursor(uint8_t *x, uint8_t *y);
+static uint8_t boton_evento(void);
+static uint8_t color_aleatorio(uint8_t actual);
+static void tono_init(void);
+static void tono_on(uint16_t frecuencia);
+static void tono_off(void);
+static void ws_byte(uint8_t dato);
+static void matriz_enviar(void);
+static void matriz_limpiar(void);
+static void matriz_pixel(uint8_t x,uint8_t y,uint8_t color,uint8_t tenue);
+static void dibujar_cursor(uint8_t x,uint8_t y,uint8_t color);
+static void dibujar_juego(uint8_t x,uint8_t y,uint8_t color,uint8_t paso);
+static void generar_secuencia(uint8_t longitud);
+static void reproducir_secuencia(uint8_t longitud);
+static void animacion_acierto(void);
+static void animacion_error(void);
+static void animacion_victoria(void);
+static void mostrar_numero(const char *etiqueta,uint16_t numero);
+static void guardar_progreso(estado_t estado,uint8_t nivel,uint16_t record);
+
+
+// IMPLEMENTACION DE FUNCIONES
+
+ISR(PCINT2_vect)
+{
+    if(!(PIND & (1<<RESET_PIN))) reinicio_pendiente=1;
+}
+static void reiniciar_partida(uint8_t *x,uint8_t *y,uint8_t *color,
+                             uint8_t *nivel,uint8_t *longitud,uint8_t *paso,
+                             uint8_t *redibujar,estado_t *estado,uint16_t record)
+{
+    reinicio_pendiente=0;
+    tono_off();
+    matriz_limpiar();
+    matriz_enviar();
+    *x=3; *y=3; *color=ROJO;
+    *nivel=1; *longitud=0; *paso=0;
+    *redibujar=1; *estado=ST_LIBRE;
+    guardar_progreso(*estado,*nivel,record);
+    uart_print("Reinicio manual: nivel 1, record conservado\r\n");
+}
+
+static void perifericos_init(void)
+{
+    DDRD |= (1<<LED_PIN);
+    PORTD &= ~(1<<LED_PIN);
+    DDRD &= ~(1<<SW_PIN);
+    PORTD |= (1<<SW_PIN);
+    DDRD &= ~(1<<RESET_PIN);
+    PORTD |= (1<<RESET_PIN);
+    PCICR |= (1<<PCIE2);
+    PCMSK2 |= (1<<PCINT20);
+    sei();
+    DDRC &= ~((1<<PC0)|(1<<PC1)|(1<<PC2)|(1<<PC3));
+    PORTC &= ~((1<<PC0)|(1<<PC1)|(1<<PC2)|(1<<PC3));
+}
