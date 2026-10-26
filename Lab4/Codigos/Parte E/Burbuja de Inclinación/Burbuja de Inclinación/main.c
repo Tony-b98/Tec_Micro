@@ -212,6 +212,80 @@ int main(void)
 			t_last = TCNT1;
 			continue;
 		}
+  // -Adquisición y filtrado (sólo en tiempo real) 
+  if (!hold_mode) {
+	  mpu_read(&ax, &ay, &az, &gx, &gy, &gz);
+
+	  float roll_acc, pitch_acc;
+	  acc_angles(ax, ay, az, &roll_acc, &pitch_acc);
+
+	  if (resync || dt > 0.1f) {      // arranque / tras HOLD o calibración
+		  roll_f = s_roll  = roll_acc;
+		  pitch_f = s_pitch = pitch_acc;
+		  resync = 0;
+	  }
+
+	  // Velocidades angulares en °/s, sin bias 
+	  float wx = (gx - bias_gx) / GYRO_LSB_DPS;
+	  float wy = (gy - bias_gy) / GYRO_LSB_DPS;
+
+	  // Filtro complementario: gyro (corto plazo) + acc (largo plazo) 
+	  roll_f  = ALPHA * (roll_f  + wx * dt) + (1.0f - ALPHA) * roll_acc;
+	  pitch_f = ALPHA * (pitch_f + wy * dt) + (1.0f - ALPHA) * pitch_acc;
+
+	  // Media móvil exponencial: elimina jitter residual 
+	  s_roll  = EMA_A * s_roll  + (1.0f - EMA_A) * roll_f;
+	  s_pitch = EMA_A * s_pitch + (1.0f - EMA_A) * pitch_f;
+
+	  // Offset de calibración 
+	  float roll  = s_roll  - off_roll;
+	  float pitch = s_pitch - off_pitch;
+	  roll_out = roll; pitch_out = pitch;
+
+	  // Zona muerta por eje: < 3° se considera 0 en ese eje 
+	  float ar = fabsf(roll), ap = fabsf(pitch);
+	  if (ar < DEAD_ZONE) roll  = 0;
+	  if (ap < DEAD_ZONE) pitch = 0;
+
+	  #if INVERT_X
+	  roll = -roll;
+	  #endif
+	  #if INVERT_Y
+	  pitch = -pitch;
+	  #endif
+	  // Mapeo a la matriz (saturado en 0..7) 
+	  bub.col = map_axis(roll);       // roll  -> eje horizontal (X)
+	  bub.row = map_axis(pitch);      // pitch -> eje vertical   (Y)
+	  set_color(&bub, ar, ap);
+
+	  // Indicador de límite: pitido sólo al LLEGAR al borde 
+	  bub.at_edge = (bub.row == 0 || bub.row == 7 ||
+	  bub.col == 0 || bub.col == 7);
+	  if (bub.at_edge && !was_edge) buzz_start(EDGE_BEEP_MS);
+	  was_edge = bub.at_edge;
+  }
+
+  buzz_update();
+
+  //Render: en el borde la burbuja parpadea (no en HOLD) 
+  uint8_t visible = 1;
+  if (bub.at_edge && !hold_mode)
+  visible = ((loop_cnt / BLINK_LOOPS) & 1) == 0;
+
+  matrix_clear();
+  if (visible) matrix_set(bub.row, bub.col, bub.r, bub.g, bub.b);
+  matrix_show();
+
+  // LCD y UART repartidos en distintos ciclos para no pasar 20 ms 
+  uint8_t ph = loop_cnt % DISP_LOOPS;
+  if (ph == 0) { build_line1(line); lcd_line(0, line); }
+  else if (ph == 3) { build_line2(line); lcd_line(1, line); }
+  else if (ph == 6) {
+	  build_line1(line); uart_print(line); uart_print("| ");
+	  build_line2(line); uart_print(line); uart_print("\r\n");
+  }
+  }
+  }
 
 
 
