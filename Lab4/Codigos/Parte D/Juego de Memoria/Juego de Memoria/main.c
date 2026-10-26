@@ -290,3 +290,65 @@ static void generar_secuencia(uint8_t longitud)
         seq_color[i]=(uint8_t)(rand()%NCOLOR);
     }
 }
+
+static void reproducir_secuencia(uint8_t longitud)
+{
+	matriz_limpiar(); matriz_enviar(); _delay_ms(400);
+	for(uint8_t i=0;i<longitud;i++)
+	{
+		matriz_limpiar();
+		matriz_pixel(seq_pos[i]%8,seq_pos[i]/8,seq_color[i],0);
+		matriz_enviar();
+		tono_on(frecuencias[seq_color[i]]);
+		_delay_ms(SHOW_ON_MS);
+		tono_off(); matriz_limpiar(); matriz_enviar();
+		_delay_ms(SHOW_OFF_MS);
+	}
+}
+static void animacion_acierto(void)
+{
+	for(uint8_t k=0;k<2;k++)
+	{
+		for(uint8_t i=0;i<64;i++) { fb[i][0]=0; fb[i][1]=BRILLO; fb[i][2]=0; }
+		matriz_enviar(); _delay_ms(150);
+		matriz_limpiar(); matriz_enviar(); _delay_ms(100);
+	}
+	const uint16_t arpegio[3]={523,659,784};
+	for(uint8_t k=0;k<3;k++) { tono_on(arpegio[k]); _delay_ms(120); tono_off(); }
+}
+static void animacion_error(void)
+{
+	for(uint8_t k=0;k<3;k++)
+	{
+		for(uint8_t i=0;i<64;i++) { fb[i][0]=BRILLO; fb[i][1]=0; fb[i][2]=0; }
+		matriz_enviar(); _delay_ms(250);
+		matriz_limpiar(); matriz_enviar(); _delay_ms(150);
+	}
+	tono_on(150); _delay_ms(600); tono_off();
+}
+static void animacion_victoria(void)
+{
+	for(uint8_t c=0;c<NCOLOR;c++)
+	{
+		for(uint8_t i=0;i<64;i++)
+		{
+			fb[i][0]=colores[c][0]; fb[i][1]=colores[c][1]; fb[i][2]=colores[c][2];
+		}
+		matriz_enviar(); tono_on(frecuencias[c]); _delay_ms(200); tono_off();
+	}
+	matriz_limpiar(); matriz_enviar();
+}
+static void mostrar_numero(const char *etiqueta,uint16_t numero)
+{
+	char texto[8];
+	uart_print(etiqueta);
+	snprintf(texto,sizeof(texto),"%u",(unsigned int)numero);
+	uart_print(texto); uart_print("\r\n");
+}
+static void guardar_progreso(estado_t estado,uint8_t nivel,uint16_t record)
+{
+	eeprom_update_byte(&ee_estado,(uint8_t)estado);
+	eeprom_update_byte(&ee_nivel,nivel);
+	eeprom_update_word(&ee_record,record);
+}
+
