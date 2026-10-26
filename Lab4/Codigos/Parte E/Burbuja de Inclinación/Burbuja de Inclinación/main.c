@@ -325,3 +325,111 @@ static uint8_t valid_f(float f, float lim)
 {
     return !isnan(f) && fabsf(f) < lim;
 }
+// LCD / UART 
+// Formatea un ángulo como "+12.3" (5 caracteres) sin usar printf de float 
+static void fmt_angle(char *s, float a)
+{
+    if (a >  99.9f) a =  99.9f;
+    if (a < -99.9f) a = -99.9f;
+    int16_t v = (int16_t)(a * 10.0f + (a >= 0 ? 0.5f : -0.5f));
+    s[0] = (v < 0) ? '-' : '+';
+    if (v < 0) v = -v;
+    s[1] = '0' + v / 100;
+    s[2] = '0' + (v / 10) % 10;
+    s[3] = '.';
+    s[4] = '0' + v % 10;
+    s[5] = '\0';
+}
+
+// Línea 1: "R:+12.3 P:-04.5 " 
+static void build_line1(char *l)
+{
+    char a[6];
+    l[0] = 'R'; l[1] = ':';
+    fmt_angle(a, roll_out);
+    for (uint8_t i = 0; i < 5; i++) l[2 + i] = a[i];
+    l[7] = ' '; l[8] = 'P'; l[9] = ':';
+    fmt_angle(a, pitch_out);
+    for (uint8_t i = 0; i < 5; i++) l[10 + i] = a[i];
+    l[15] = ' '; l[16] = '\0';
+}
+
+// Línea 2: "HOLD X:3 Y:7 LIM" / "RUN  X:4 Y:4    " 
+static void build_line2(char *l)
+{
+    const char *m = hold_mode ? "HOLD" : "RUN ";
+    for (uint8_t i = 0; i < 4; i++) l[i] = m[i];
+    l[4] = ' '; l[5] = 'X'; l[6] = ':'; l[7] = '0' + bub.col;
+    l[8] = ' '; l[9] = 'Y'; l[10] = ':'; l[11] = '0' + bub.row;
+    l[12] = ' ';
+    if (bub.at_edge) { l[13] = 'L'; l[14] = 'I'; l[15] = 'M'; }
+    else             { l[13] = ' '; l[14] = ' '; l[15] = ' '; }
+    l[16] = '\0';
+}
+
+static void lcd_line(uint8_t line, const char *txt)
+{
+    twi_lcd_cmd(line ? 0xC0 : 0x80);        // inicio de fila 2 / fila 1
+    twi_lcd_msg(txt);
+}
+
+// Lógica de la burbuja 
+// Mapea ángulo [-MAX_ANGLE, +MAX_ANGLE] a [0..7] con saturación 
+static uint8_t map_axis(float ang)
+{
+    if (ang <= -MAX_ANGLE) return 0;
+    if (ang >=  MAX_ANGLE) return 7;
+    float norm = (ang + MAX_ANGLE) / (2.0f * MAX_ANGLE);   // 0..1
+    uint8_t c = (uint8_t)(norm * 8.0f);                    // 8 franjas iguales
+    return (c > 7) ? 7 : c;
+}
+
+// Color según eje predominante:
+ //azul = nivelado | rojo = X (roll) | verde = Y (pitch) | amarillo = combinado 
+static void set_color(Bubble *b, float ar, float ap)
+{
+    if (ar < DEAD_ZONE && ap < DEAD_ZONE) { b->r = 0;   b->g = 0;   b->b = 80; }
+    else if (ar > ap * 1.5f)              { b->r = 120; b->g = 0;   b->b = 0;  }
+    else if (ap > ar * 1.5f)              { b->r = 0;   b->g = 120; b->b = 0;  }
+    else                                  { b->r = 120; b->g = 80;  b->b = 0;  }
+}
+
+// Calibración: promedia 64 muestras en reposo y guarda offsets en EEPROM
+static void calibrate(void)
+{
+    matrix_clear();
+    matrix_set(3, 3, 60, 60, 60);           // 4 LEDs blancos al centro
+    matrix_set(3, 4, 60, 60, 60);
+    matrix_set(4, 3, 60, 60, 60);
+    matrix_set(4, 4, 60, 60, 60);
+    matrix_show();
+    lcd_line(0, "Calibrando...   ");
+    lcd_line(1, "No mover        ");
+    uart_print("Calibrando...\r\n");
+
+    int16_t ax, ay, az, gx, gy, gz;
+    float sum_r = 0, sum_p = 0, sum_gx = 0, sum_gy = 0, r, p;
+
+    for (uint8_t i = 0; i < 64; i++) {
+        mpu_read(&ax, &ay, &az, &gx, &gy, &gz);
+        acc_angles(ax, ay, az, &r, &p);
+        sum_r += r;  sum_p += p;
+        sum_gx += gx; sum_gy += gy;
+        _delay_ms(10);
+    }
+
+    off_roll  = sum_r  / 64.0f;
+    off_pitch = sum_p  / 64.0f;
+    bias_gx   = sum_gx / 64.0f;
+    bias_gy   = sum_gy / 64.0f;
+
+    eeprom_write_f(&ee.roll,  off_roll);
+    eeprom_write_f(&ee.pitch, off_pitch);
+    eeprom_write_f(&ee.gx,    bias_gx);
+    eeprom_write_f(&ee.gy,    bias_gy);
+    eeprom_update_byte(&ee.magic, MAGIC_OK);
+
+    resync = 1;                             // filtros arrancan del nuevo cero
+    beep_blocking(150);                     // confirma calibración
+    uart_print("Offset guardado en EEPROM\r\n");
+}
