@@ -210,3 +210,118 @@ static void acc_angles(int16_t ax, int16_t ay, int16_t az, float *roll, float *p
     *roll  = atan2f(fy, fz) * RAD_TO_DEG;
     *pitch = atan2f(-fx, sqrtf(fy * fy + fz * fz)) * RAD_TO_DEG;
 }
+
+static inline void ws2812_send_byte(uint8_t b)
+{
+    uint8_t cnt;
+    asm volatile (
+        "    ldi  %[cnt], 8          \n\t"
+        "1:  lsl  %[b]               \n\t"   // 1  carry = bit a enviar
+        "    sbi  %[port], %[pin]    \n\t"   // 2  línea en alto
+        "    brcc 2f                 \n\t"   // 1/2
+        /* ---- bit = 1 ---- */
+        NOP NOP NOP NOP NOP NOP NOP NOP NOP NOP
+        "    cbi  %[port], %[pin]    \n\t"   // 2
+        NOP NOP NOP NOP
+        "    rjmp 3f                 \n\t"   // 2
+        // ---- bit = 0 ---- 
+        "2:  nop                     \n\t"
+        "    nop                     \n\t"
+        "    cbi  %[port], %[pin]    \n\t"   // 2
+        NOP NOP NOP NOP NOP NOP NOP
+        "3:  dec  %[cnt]             \n\t"   // 1
+        "    brne 1b                 \n\t"   // 2
+        : [b] "+r" (b), [cnt] "=&d" (cnt)
+        : [port] "I" (_SFR_IO_ADDR(WS_PORT)), [pin] "I" (WS_BIT)
+    );
+}
+
+static void matrix_show(void)
+{
+    cli();                                  // la trama no admite interrupciones
+    for (uint8_t i = 0; i < N_LEDS; i++) {
+        ws2812_send_byte(frame[i * 3 + 1]); // orden GRB del WS2812B
+        ws2812_send_byte(frame[i * 3 + 0]);
+        ws2812_send_byte(frame[i * 3 + 2]);
+    }
+    sei();
+    _delay_us(60);                          // reset/latch: línea en bajo > 50 us
+}
+
+static void matrix_clear(void)
+{
+    for (uint16_t i = 0; i < N_LEDS * 3; i++) frame[i] = 0;
+}
+
+// Matriz serpenteante: filas impares invertidas. Ajustar según el módulo. 
+static void matrix_set(uint8_t row, uint8_t col, uint8_t r, uint8_t g, uint8_t b)
+{
+    if (row > 7 || col > 7) return;
+    uint16_t idx;
+    if (row & 1) idx = (uint16_t)row * 8 + (7 - col);
+    else         idx = (uint16_t)row * 8 + col;
+    frame[idx * 3 + 0] = r;
+    frame[idx * 3 + 1] = g;
+    frame[idx * 3 + 2] = b;
+}
+
+//   Buzzer (no bloqueante) 
+static void buzzer_init(void)
+{
+    BUZZ_DDR  |= (1 << BUZZ_BIT);
+    BUZZ_PORT &= ~(1 << BUZZ_BIT);
+}
+
+static void buzz_start(uint16_t ms)
+{
+    buzz_ticks = (uint8_t)((ms + LOOP_MS - 1) / LOOP_MS);
+    BUZZ_PORT |= (1 << BUZZ_BIT);
+}
+
+static void buzz_update(void)               // se llama una vez por lazo
+{
+    if (buzz_ticks && --buzz_ticks == 0) BUZZ_PORT &= ~(1 << BUZZ_BIT);
+}
+
+static void beep_blocking(uint16_t ms)
+{
+    BUZZ_PORT |= (1 << BUZZ_BIT);
+    while (ms--) _delay_ms(1);
+    BUZZ_PORT &= ~(1 << BUZZ_BIT);
+}
+
+// Botones (polling con debounce) 
+static void buttons_init(void)
+{
+    BTN_DDR  &= ~((1 << BTN_HOLD) | (1 << BTN_CAL));
+    BTN_PORT |=  (1 << BTN_HOLD) | (1 << BTN_CAL);  // pull-ups internas
+}
+
+// Devuelve 1 sólo en el flanco de pulsación (activo en bajo) 
+static uint8_t button_edge(uint8_t bit, uint8_t *prev)
+{
+    uint8_t now = !(BTN_PIN & (1 << bit));
+    if (now && !*prev) {
+        _delay_ms(25);                      // debounce
+        if (!(BTN_PIN & (1 << bit))) { *prev = 1; return 1; }
+        return 0;
+    }
+    if (!now) *prev = 0;
+    return 0;
+}
+
+//  EEPROM 
+static void eeprom_write_f(float *ee_addr, float f)
+{
+    eeprom_update_float(ee_addr, f);        // update: sólo escribe si cambió
+}
+
+static float eeprom_read_f(const float *ee_addr)
+{
+    return eeprom_read_float(ee_addr);
+}
+
+static uint8_t valid_f(float f, float lim)
+{
+    return !isnan(f) && fabsf(f) < lim;
+}
