@@ -72,3 +72,70 @@ static EECal EEMEM ee;
 
 // Instrucción NOP para el ensamblador en línea de la WS2812B 
 #define NOP "nop\n\t"
+
+//  Variables globales
+
+static uint8_t  frame[N_LEDS * 3];          // buffer RGB de la matriz
+static uint8_t  hold_mode = 0;              // 1 = HOLD (congelado)
+static float    off_roll = 0, off_pitch = 0;// offsets de calibración (°)
+static float    bias_gx = 0, bias_gy = 0;   // bias del giroscopio (LSB)
+static float    roll_f = 0, pitch_f = 0;    // salida filtro complementario
+static float    s_roll = 0, s_pitch = 0;    // salida EMA
+static float    roll_out = 0, pitch_out = 0;// ángulos finales (para LCD/UART)
+static uint8_t  resync = 1;                 // 1 = reiniciar filtros con el acc
+static uint8_t  buzz_ticks = 0;             // buzzer no bloqueante
+
+typedef struct {
+    uint8_t row, col;
+    uint8_t r, g, b;
+    uint8_t at_edge;
+} Bubble;
+static Bubble bub = {4, 4, 0, 0, 80, 0};
+
+//    PROTOTIPOS
+
+static void twi_write_sla_r(uint8_t sla_r);
+static void mpu_write_reg(uint8_t reg, uint8_t val);
+static uint8_t mpu_read_reg(uint8_t reg);
+static void mpu_init(void);
+static void mpu_read(int16_t *ax, int16_t *ay, int16_t *az,
+                     int16_t *gx, int16_t *gy, int16_t *gz);
+static void acc_angles(int16_t ax, int16_t ay, int16_t az, float *roll, float *pitch);
+
+// Matriz WS2812B 
+
+static inline void ws2812_send_byte(uint8_t b);
+static void matrix_show(void);
+static void matrix_clear(void);
+static void matrix_set(uint8_t row, uint8_t col, uint8_t r, uint8_t g, uint8_t b);
+
+// Buzzer (no bloqueante) 
+
+static void buzzer_init(void);
+static void buzz_start(uint16_t ms);
+static void buzz_update(void);
+static void beep_blocking(uint16_t ms);
+
+//  Botones (polling con debounce) 
+
+static void buttons_init(void);
+static uint8_t button_edge(uint8_t bit, uint8_t *prev);
+
+//  EEPROM 
+
+static void eeprom_write_f(float *ee_addr, float f);
+static float eeprom_read_f(const float *ee_addr);
+static uint8_t valid_f(float f, float lim);
+
+//  LCD / UART 
+
+static void fmt_angle(char *s, float a);
+static void build_line1(char *l);
+static void build_line2(char *l);
+static void lcd_line(uint8_t line, const char *txt);
+
+//  Lógica de la burbuja 
+
+static uint8_t map_axis(float ang);
+static void set_color(Bubble *b, float ar, float ap);
+static void calibrate(void);
