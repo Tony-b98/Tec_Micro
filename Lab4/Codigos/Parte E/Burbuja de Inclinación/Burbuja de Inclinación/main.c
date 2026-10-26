@@ -139,3 +139,74 @@ static void lcd_line(uint8_t line, const char *txt);
 static uint8_t map_axis(float ang);
 static void set_color(Bubble *b, float ar, float ap);
 static void calibrate(void);
+
+ //IMPLEMENTACIÓN DE LAS FUNCIONES
+static void twi_write_sla_r(uint8_t sla_r)
+{
+    TWDR = sla_r;
+    TWCR = (1 << TWINT) | (1 << TWEN);
+    while (!(TWCR & (1 << TWINT)));
+    while (TW_STATUS != TW_MR_SLA_ACK);
+}
+
+static void mpu_write_reg(uint8_t reg, uint8_t val)
+{
+    twi_start();
+    twi_write_cmd(MPU_ADDR_W);
+    twi_write_dwr(reg);
+    twi_write_dwr(val);
+    twi_stop();
+}
+
+static uint8_t mpu_read_reg(uint8_t reg)
+{
+    uint8_t v;
+    twi_start();
+    twi_write_cmd(MPU_ADDR_W);
+    twi_write_dwr(reg);
+    twi_repeated_start();
+    twi_write_sla_r(MPU_ADDR_R);
+    v = (uint8_t)twi_read_nack();
+    twi_stop();
+    return v;
+}
+
+static void mpu_init(void)
+{
+    mpu_write_reg(MPU_PWR_MGMT, 0x01);      // despertar, reloj = PLL del gyro X
+    _delay_ms(50);
+    mpu_write_reg(MPU_SMPLRT_DIV, 0x07);    // 1 kHz / (1+7) = 125 Hz
+    mpu_write_reg(MPU_CONFIG,     0x03);    // DLPF ~44 Hz (reduce ruido)
+    mpu_write_reg(MPU_GYRO_CFG,   0x00);    // ±250 °/s
+    mpu_write_reg(MPU_ACCEL_CFG,  0x00);    // ±2 g
+}
+
+// Lee acelerómetro (0x3B..0x40), temperatura y giroscopio (0x43..0x48) en una sola ráfaga de 14 bytes 
+static void mpu_read(int16_t *ax, int16_t *ay, int16_t *az,
+                     int16_t *gx, int16_t *gy, int16_t *gz)
+{
+    uint8_t buf[14];
+    twi_start();
+    twi_write_cmd(MPU_ADDR_W);
+    twi_write_dwr(MPU_ACCEL_XOUT);
+    twi_repeated_start();
+    twi_write_sla_r(MPU_ADDR_R);
+    for (uint8_t i = 0; i < 13; i++) buf[i] = (uint8_t)twi_read_ack();
+    buf[13] = (uint8_t)twi_read_nack();     // último byte: NACK
+    twi_stop();
+
+    *ax = (int16_t)((buf[0]  << 8) | buf[1]);
+    *ay = (int16_t)((buf[2]  << 8) | buf[3]);
+    *az = (int16_t)((buf[4]  << 8) | buf[5]);
+    *gx = (int16_t)((buf[8]  << 8) | buf[9]);
+    *gy = (int16_t)((buf[10] << 8) | buf[11]);
+    *gz = (int16_t)((buf[12] << 8) | buf[13]);
+}
+
+// Ángulos por acelerómetro (roll = giro sobre X, pitch = giro sobre Y)
+static void acc_angles(int16_t ax, int16_t ay, int16_t az, float *roll, float *pitch)
+{
+    float fx = ax / ACC_LSB_G, fy = ay / ACC_LSB_G, fz = az / ACC_LSB_G;
+    *roll  = atan2f(fy, fz) * RAD_TO_DEG;
+    *pitch = atan2f(-fx, sqrtf(fy * fy + fz * fz)) * RAD_TO_DEG;
+}
