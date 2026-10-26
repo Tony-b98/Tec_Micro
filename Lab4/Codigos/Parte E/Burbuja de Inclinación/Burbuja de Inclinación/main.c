@@ -140,7 +140,82 @@ static uint8_t map_axis(float ang);
 static void set_color(Bubble *b, float ar, float ap);
 static void calibrate(void);
 
- //IMPLEMENTACIÓN DE LAS FUNCIONES
+//  MAIN 
+
+int main(void)
+{
+	// Inicialización 
+	WS_DDR  |=  (1 << WS_BIT);
+	WS_PORT &= ~(1 << WS_BIT);
+	buttons_init();
+	buzzer_init();
+	uart_init(BAUD_UBRR);
+
+	TCCR1A = 0;                             // Timer1 normal, libre
+	TCCR1B = (1 << CS11) | (1 << CS10);     // prescaler 64 -> 4 us/cuenta
+
+	matrix_clear();
+	matrix_show();                          // apagar matriz al arrancar
+
+	twi_init();                             // I2C 400 kHz (librería docente)
+	twi_lcd_init();                         // LCD 16x2 por PCF8574
+	twi_lcd_cmd(0x0C);                      // display on, sin cursor ni parpadeo
+	mpu_init();
+
+	uart_print("\r\nBurbuja de nivel - Lab 4 Problema E\r\n");
+	uart_print("WHO_AM_I (esperado 0x68): ");
+	uart_print_hex(mpu_read_reg(MPU_WHO_AM_I));
+	uart_print("\r\n");
+
+	// Cargar offsets desde EEPROM, o calibrar si no hay datos válidos 
+	if (eeprom_read_byte(&ee.magic) == MAGIC_OK) {
+		off_roll  = eeprom_read_f(&ee.roll);
+		off_pitch = eeprom_read_f(&ee.pitch);
+		bias_gx   = eeprom_read_f(&ee.gx);
+		bias_gy   = eeprom_read_f(&ee.gy);
+		if (!valid_f(off_roll, 90) || !valid_f(off_pitch, 90) ||
+		!valid_f(bias_gx, 5000) || !valid_f(bias_gy, 5000)) {
+			calibrate();
+			} else {
+			uart_print("Offset cargado de EEPROM\r\n");
+		}
+		} else {
+		calibrate();                        // primer arranque
+	}
+
+	int16_t ax, ay, az, gx, gy, gz;
+	uint8_t prev_hold = 0, prev_cal = 0;
+	uint8_t was_edge = 0;
+	uint8_t loop_cnt = 0;
+	char line[17];
+	uint16_t t_last = TCNT1;
+
+	// Lazo principal (período fijo de 20 ms medido con Timer1) 
+	while (1) {
+
+		// Espera al próximo período y mide el dt real transcurrido 
+		while ((uint16_t)(TCNT1 - t_last) < LOOP_TICKS);
+		uint16_t t_now = TCNT1;
+		float dt = (uint16_t)(t_now - t_last) * (T1_US_PER_TICK * 1e-6f);
+		t_last = t_now;
+		loop_cnt++;
+
+		// Entradas: botones 
+		if (button_edge(BTN_HOLD, &prev_hold)) {
+			hold_mode ^= 1;                 // alterna HOLD / tiempo real
+			if (!hold_mode) resync = 1;     // al reanudar, reiniciar filtros
+			buzz_start(40);
+			uart_print(hold_mode ? "HOLD ON\r\n" : "HOLD OFF\r\n");
+		}
+		if (button_edge(BTN_CAL, &prev_cal)) {
+			calibrate();                    // nuevo cero + guardado en EEPROM
+			t_last = TCNT1;
+			continue;
+		}
+
+
+
+//IMPLEMENTACIÓN DE LAS FUNCIONES
 static void twi_write_sla_r(uint8_t sla_r)
 {
     TWDR = sla_r;
