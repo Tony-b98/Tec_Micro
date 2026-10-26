@@ -119,3 +119,69 @@ static void perifericos_init(void)
     DDRC &= ~((1<<PC0)|(1<<PC1)|(1<<PC2)|(1<<PC3));
     PORTC &= ~((1<<PC0)|(1<<PC1)|(1<<PC2)|(1<<PC3));
 }
+
+static void adc_init(void)
+{
+#if SIMULACION
+    ADMUX = 0;              // referencia externa en AREF (AREF a +5V en Proteus) 
+#else
+    ADMUX = (1<<REFS0);     // referencia AVCC (placa real, AREF sin conectar) 
+#endif
+    ADCSRA = (1<<ADEN)|(1<<ADPS2)|(1<<ADPS1)|(1<<ADPS0);
+    (void)adc_read(0);      // primera conversion descartada 
+}
+
+static uint16_t adc_read(uint8_t canal)
+{
+    ADMUX=(ADMUX & 0xF0)|(canal & 0x0F);
+    _delay_us(15);
+    ADCSRA|=(1<<ADSC);
+    while(ADCSRA & (1<<ADSC)) { }
+    return ADC;
+}
+
+static void joystick_calibrar(void)
+{
+    uint32_t sx=0, sy=0;
+    int16_t menor;
+    _delay_ms(100);
+    for(uint8_t i=0;i<16;i++)
+    {
+        sx+=adc_read(JOY_X);
+        sy+=adc_read(JOY_Y);
+        _delay_ms(2);
+    }
+    centro_x=(int16_t)(sx/16);
+    centro_y=(int16_t)(sy/16);
+    menor = centro_x<centro_y ? centro_x : centro_y;
+    zona_muerta=(int16_t)(((int32_t)menor*ZONA_PCT)/100);
+    if(zona_muerta<ZONA_MIN) zona_muerta=ZONA_MIN;
+}
+static dir_t joystick_dir(void)
+{
+    int16_t x=(int16_t)adc_read(JOY_X)-centro_x;
+    int16_t y=(int16_t)adc_read(JOY_Y)-centro_y;
+#if INVERTIR_X
+    x=-x;
+#endif
+#if INVERTIR_Y
+    y=-y;
+#endif
+    if(abs(x)<zona_muerta && abs(y)<zona_muerta) return J_CENTRO;
+    if(abs(x)>abs(y)) return x<0 ? J_IZQUIERDA:J_DERECHA;
+    return y<0 ? J_ARRIBA:J_ABAJO;
+}
+static uint8_t mover_cursor(uint8_t *x,uint8_t *y)
+{
+    uint8_t cambio=0;
+    switch(joystick_dir())
+    {
+        case J_IZQUIERDA: if(*x>0) { --*x; cambio=1; } break;
+        case J_DERECHA:   if(*x<7) { ++*x; cambio=1; } break;
+        case J_ARRIBA:    if(*y>0) { --*y; cambio=1; } break;
+        case J_ABAJO:     if(*y<7) { ++*y; cambio=1; } break;
+        default: break;
+    }
+    if(cambio) _delay_ms(MOVE_MS);
+    return cambio;
+}
