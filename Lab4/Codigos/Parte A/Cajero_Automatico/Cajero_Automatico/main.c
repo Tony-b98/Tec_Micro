@@ -7,7 +7,18 @@
 #include "UART.h"
 #include "SPI.h"
 #include "RC522.h"
-#include "twi.h"
+
+/* twi_lcd.h hace #include "twi.c", y twi.c también se compila aparte
+   en el proyecto, lo que duplica las funciones twi_*. Renombramos la
+   copia que entra en este archivo para que no choque con la otra. */
+#define twi_init           lcd_twi_init
+#define twi_start          lcd_twi_start
+#define twi_repeated_start lcd_twi_repeated_start
+#define twi_write_cmd      lcd_twi_write_cmd
+#define twi_write_dwr      lcd_twi_write_dwr
+#define twi_stop           lcd_twi_stop
+#define twi_read_ack       lcd_twi_read_ack
+#define twi_read_nack      lcd_twi_read_nack
 
 #define PCF8574 0x27  
 #include "twi_lcd.h"
@@ -25,11 +36,19 @@
 typedef struct { uint8_t uid[4]; uint8_t pin[4]; uint32_t saldo; } cuenta_t;
 #define N_CUENTAS 3
 
-static cuenta_t EEMEM ee_cuentas[N_CUENTAS] = {
+/* Cambiar EE_MAGIC cada vez que se modifique la tabla por defecto
+   (UIDs, PINs o saldos) para forzar que se copie de nuevo a la EEPROM. */
+#define EE_MAGIC 0xA7
+
+/* Tabla por defecto en flash: se copia a EEPROM la primera vez */
+static const cuenta_t cuentas_def[N_CUENTAS] = {
 	{{0xD3,0x9A,0x88,0x29},{'1','2','3','4'},5000},
-	{{0x11,0x22,0x33,0x44},{'5','6','7','8'},3000},
-	{{0xDE,0xAD,0xBE,0xEF},{'9','9','9','9'},1000}
+	{{0xCA,0x97,0xF6,0x34},{'5','5','5','5'},3000},
+	{{0xE3,0xF8,0x13,0x28},{'9','9','9','9'},1000}
 };
+
+static cuenta_t EEMEM ee_cuentas[N_CUENTAS];
+static uint8_t  EEMEM ee_magic;
 static cuenta_t cuentas[N_CUENTAS];
 
 static uint8_t cuenta_actual=0xFF;
@@ -80,13 +99,21 @@ int main(void)
 	indicadores_init();
 	cargar_cuentas();
 	twi_lcd_init();
+	twi_lcd_cmd(0x0C);   /* display on, sin cursor parpadeante */
 
 	lcd_show("CAJERO ATM", "Acerque tarjeta");
 
-	uint8_t uid[5];
+	/* mfrc522_standard() borra 16 bytes cuando no hay tarjeta,
+	   así que el buffer debe tener al menos 16 */
+	uint8_t uid[16];
+	estado_t estado_previo = ST_BLOQUEO;   /* distinto al inicial */
 
 	for (;;)
 	{
+		/* entrando = 1 solo en la primera vuelta de cada estado */
+		uint8_t entrando = (estado != estado_previo);
+		estado_previo = estado;
+
 		switch (estado)
 		{
 			case ST_ESPERA_TARJETA:
@@ -136,10 +163,25 @@ int main(void)
 			{
 				char k = keypad_scan();
 
+				if (k)
+				{
+					/* Depuración: muestra por UART la tecla que leyó el teclado */
+					uart_print("Tecla: ");
+					uart_send(k);
+					uart_print("\r\n");
+				}
+
 				if (k >= '0' && k <= '9' && pin_idx < 4)
 				{
 					pin_buf[pin_idx++] = k;
 					twi_lcd_dwr('*');
+				}
+				else if (k == '*' && pin_idx > 0)   /* borrar último dígito */
+				{
+					pin_idx--;
+					lcd_goto(5 + pin_idx, 1);
+					twi_lcd_dwr(' ');
+					lcd_goto(5 + pin_idx, 1);
 				}
 
 				if (pin_idx == 4)
@@ -203,7 +245,12 @@ int main(void)
 
 			case ST_MENU:
 			{
-				lcd_show("A:Ret B:Dep", "C:Saldo D:Salir");
+				/* Dibujar el menú una sola vez al entrar (antes se
+				   redibujaba en cada vuelta y casi no leía el teclado) */
+				if (entrando)
+				{
+					lcd_show("A:Ret B:Dep", "C:Saldo D:Salir");
+				}
 
 				char k = keypad_scan();
 
@@ -341,10 +388,21 @@ static void indicadores_init(void) {
 static void ok(void) {PORTC|=(1<<LED_VERDE);_delay_ms(500);PORTC&=~(1<<LED_VERDE);}
 static void error_led(void) {PORTC|=(1<<LED_ROJO);_delay_ms(500);PORTC&=~(1<<LED_ROJO);}
 static void buzz(void) {PORTC|=(1<<BUZZER);_delay_ms(1000);PORTC&=~(1<<BUZZER);}
-static void cargar_cuentas(void) {eeprom_read_block(cuentas,ee_cuentas,sizeof(cuentas));}
+
+static void cargar_cuentas(void) {
+	/* Si la EEPROM no tiene la tabla actual (primer arranque, chip borrado
+	   o tabla por defecto modificada), se copia desde flash. */
+	if (eeprom_read_byte(&ee_magic) != EE_MAGIC) {
+		uart_print("Inicializando EEPROM con cuentas por defecto\r\n");
+		eeprom_update_block(cuentas_def, ee_cuentas, sizeof(cuentas_def));
+		eeprom_update_byte(&ee_magic, EE_MAGIC);
+	}
+	eeprom_read_block(cuentas, ee_cuentas, sizeof(cuentas));
+}
+
 static void guardar_saldo(uint8_t idx) {eeprom_update_dword(&ee_cuentas[idx].saldo,cuentas[idx].saldo);}
 static uint8_t detectar_tarjeta(uint8_t *uid) {
-    memset(uid,0,5);
+    memset(uid,0,16);
     mfrc522_standard(uid);
     /* La biblioteca original no devuelve estado ni valida CRC/BCC.
        Este chequeo es solo preliminar; NO autentica una tarjeta. */
