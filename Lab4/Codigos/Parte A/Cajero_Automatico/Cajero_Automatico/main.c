@@ -387,4 +387,3 @@ static uint32_t leer_monto(const char *titulo) {
 		}
 	}
 }
-
