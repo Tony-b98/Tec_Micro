@@ -26,11 +26,10 @@ typedef struct { uint8_t uid[4]; uint8_t pin[4]; uint32_t saldo; } cuenta_t;
 #define N_CUENTAS 3
 
 static cuenta_t EEMEM ee_cuentas[N_CUENTAS] = {
-	{{0xA1,0xB2,0xC3,0xD4},{'1','2','3','4'},5000},
+	{{0xD3,0x9A,0x88,0x29},{'1','2','3','4'},5000},
 	{{0x11,0x22,0x33,0x44},{'5','6','7','8'},3000},
 	{{0xDE,0xAD,0xBE,0xEF},{'9','9','9','9'},1000}
 };
-
 static cuenta_t cuentas[N_CUENTAS];
 
 static uint8_t cuenta_actual=0xFF;
