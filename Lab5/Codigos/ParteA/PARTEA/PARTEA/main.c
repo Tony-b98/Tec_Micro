@@ -162,3 +162,33 @@ ISR(USART_UDRE_vect)
 		UCSR0B &= ~(1 << UDRIE0);
 	}
 }
+
+// INTERRUPCIONES DE TEMPORIZADORES
+
+ISR(TIMER0_COMPA_vect)
+{
+	tiempo_sistema++;
+}
+
+ISR(TIMER1_COMPA_vect)
+{
+	if (solicitudes_adc < 255)
+	solicitudes_adc++;
+	else if (adc_solicitudes_perdidas < 65535)
+	adc_solicitudes_perdidas++;
+}
+
+ISR(ADC_vect)
+{
+	adc_resultado = ADC;
+	adc_listo = 1;
+	adc_ocupado = 0;
+}
+
+// INTERRUPCION EXTERNA INT0
+
+
+ISR(INT0_vect)
+{
+	flag_boton = 1;
+}
