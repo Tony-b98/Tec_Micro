@@ -192,3 +192,274 @@ ISR(INT0_vect)
 {
 	flag_boton = 1;
 }
+// =====================================================
+// INTERRUPCION DHT11
+// =====================================================
+
+ISR(PCINT2_vect)
+{
+	if (dht_estado < DHT_RESP_LOW ||
+	dht_estado > DHT_MEDIR_HIGH)
+	return;
+
+	uint8_t alto =
+	(PIND & (1 << DHT_PIN)) != 0;
+
+	uint8_t tic = TCNT2;
+
+	if (dht_estado == DHT_RESP_LOW)
+	{
+		if (!alto)
+		dht_estado = DHT_RESP_HIGH;
+	}
+	else if (dht_estado == DHT_RESP_HIGH)
+	{
+		if (alto)
+		dht_estado = DHT_BIT_LOW;
+	}
+	else if (dht_estado == DHT_BIT_LOW)
+	{
+		if (!alto)
+		dht_estado = DHT_BIT_HIGH;
+	}
+	else if (dht_estado == DHT_BIT_HIGH)
+	{
+		if (alto)
+		{
+			dht_inicio_pulso = tic;
+			dht_estado = DHT_MEDIR_HIGH;
+		}
+	}
+	else if (dht_estado == DHT_MEDIR_HIGH && !alto)
+	{
+		uint8_t duracion = (uint8_t)(
+		tic - dht_inicio_pulso
+		);
+
+		if (duracion < 25U || duracion > 200U)
+		{
+			dht_estado = DHT_ERROR;
+			return;
+		}
+
+		uint8_t pos = dht_bits / 8U;
+
+		dht_datos[pos] = (uint8_t)(
+		(dht_datos[pos] << 1) |
+		(duracion >= 100U)
+		);
+
+		dht_bits++;
+
+		dht_estado =
+		(dht_bits == 40U) ?
+		DHT_TERMINADO :
+		DHT_BIT_HIGH;
+	}
+}
+
+// =====================================================
+// CONFIGURACION GPIO
+// =====================================================
+
+void gpio_init(void)
+{
+	DDRB |= (1 << LED_PIN) | (1 << BUZZER_PIN);
+
+	PORTB &= ~(
+	(1 << LED_PIN) |
+	(1 << BUZZER_PIN)
+	);
+
+	DDRD &= ~(
+	(1 << BOTON_PIN) |
+	(1 << DHT_PIN)
+	);
+
+	PORTD |=
+	(1 << BOTON_PIN) |
+	(1 << DHT_PIN);
+
+	DDRC &= ~(1 << PC0);
+	PORTC &= ~(1 << PC0);
+
+	// INT0: flanco descendente
+	EICRA = (1 << ISC01);
+	EIFR = (1 << INTF0);
+	EIMSK = (1 << INT0);
+
+	// DHT11: PCINT20
+	PCICR &= ~(1 << PCIE2);
+	PCMSK2 |= (1 << PCINT20);
+}
+
+// =====================================================
+// CONFIGURACION TEMPORIZADORES
+// =====================================================
+
+void timers_init(void)
+{
+	// TIMER0: base de 1 ms
+	TCCR0A = (1 << WGM01);
+	TCCR0B = (1 << CS01) | (1 << CS00);
+
+	TCNT0 = 0;
+	OCR0A = 249;
+	TIMSK0 = (1 << OCIE0A);
+
+	// TIMER1: interrupcion cada 100 ms
+	TCCR1A = 0;
+
+	TCCR1B =
+	(1 << WGM12) |
+	(1 << CS11) |
+	(1 << CS10);
+
+	TCNT1 = 0;
+	OCR1A = 24999;
+	TIMSK1 = (1 << OCIE1A);
+
+	// TIMER2: resolucion de 0.5 us
+	TCCR2A = 0;
+	TCCR2B = (1 << CS21);
+	TCNT2 = 0;
+}
+
+// =====================================================
+// ADC
+// =====================================================
+
+void adc_init(void)
+{
+	ADMUX = (1 << REFS0);
+	ADCSRB = 0;
+
+	DIDR0 |= (1 << ADC0D);
+
+	ADCSRA =
+	(1 << ADEN) |
+	(1 << ADIE) |
+	(1 << ADPS2) |
+	(1 << ADPS1) |
+	(1 << ADPS0);
+}
+
+void adc_poll(void)
+{
+	if (adc_listo)
+	{
+		uint8_t s = SREG;
+		cli();
+
+		valor_adc = adc_resultado;
+		adc_listo = 0;
+
+		SREG = s;
+	}
+
+	if (!adc_ocupado && solicitudes_adc)
+	{
+		uint8_t s = SREG;
+		cli();
+
+		if (!adc_ocupado && solicitudes_adc)
+		{
+			solicitudes_adc--;
+			adc_ocupado = 1;
+
+			ADCSRA |= (1 << ADSC);
+		}
+
+		SREG = s;
+	}
+}
+
+// =====================================================
+// DHT11 - INICIO DE MEDICION
+// =====================================================
+
+void dht_iniciar(uint32_t ahora)
+{
+	for (uint8_t i = 0; i < 5; i++)
+	dht_datos[i] = 0;
+
+	dht_bits = 0;
+	dht_inicio_ms = ahora;
+	dht_estado = DHT_INICIO_LOW;
+
+	PCICR &= ~(1 << PCIE2);
+
+	PORTD &= ~(1 << DHT_PIN);
+	DDRD |= (1 << DHT_PIN);
+}
+
+// =====================================================
+// DHT11 - PROCESAMIENTO
+// =====================================================
+
+void dht_poll(uint32_t ahora)
+{
+	if (
+	dht_estado == DHT_INICIO_LOW &&
+	(uint32_t)(ahora - dht_inicio_ms) >= 20UL
+	)
+	{
+		uint8_t s = SREG;
+		cli();
+
+		PORTD |= (1 << DHT_PIN);
+		DDRD &= ~(1 << DHT_PIN);
+
+		dht_estado = DHT_RESP_LOW;
+
+		PCIFR = (1 << PCIF2);
+		PCICR |= (1 << PCIE2);
+
+		SREG = s;
+	}
+
+	if (
+	dht_estado == DHT_TERMINADO ||
+	dht_estado == DHT_ERROR ||
+	(
+	dht_estado != DHT_INACTIVO &&
+	(uint32_t)(ahora - dht_inicio_ms) > 35UL
+	)
+	)
+	{
+		uint8_t s = SREG;
+		cli();
+
+		PCICR &= ~(1 << PCIE2);
+
+		uint8_t listo =
+		(dht_estado == DHT_TERMINADO);
+
+		uint8_t bytes[5];
+
+		for (uint8_t i = 0; i < 5; i++)
+		bytes[i] = dht_datos[i];
+
+		dht_estado = DHT_INACTIVO;
+
+		SREG = s;
+
+		uint8_t suma = (uint8_t)(
+		bytes[0] +
+		bytes[1] +
+		bytes[2] +
+		bytes[3]
+		);
+
+		if (listo && suma == bytes[4])
+		{
+			humedad = bytes[0];
+			temperatura = bytes[2];
+			temperatura_valida = 1;
+		}
+		else
+		{
+			temperatura_valida = 0;
+		}
+	}
+}
