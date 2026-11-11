@@ -192,9 +192,9 @@ ISR(INT0_vect)
 {
 	flag_boton = 1;
 }
-// =====================================================
+
+
 // INTERRUPCION DHT11
-// =====================================================
 
 ISR(PCINT2_vect)
 {
@@ -258,9 +258,8 @@ ISR(PCINT2_vect)
 	}
 }
 
-// =====================================================
+
 // CONFIGURACION GPIO
-// =====================================================
 
 void gpio_init(void)
 {
@@ -293,9 +292,7 @@ void gpio_init(void)
 	PCMSK2 |= (1 << PCINT20);
 }
 
-// =====================================================
 // CONFIGURACION TEMPORIZADORES
-// =====================================================
 
 void timers_init(void)
 {
@@ -325,9 +322,7 @@ void timers_init(void)
 	TCNT2 = 0;
 }
 
-// =====================================================
 // ADC
-// =====================================================
 
 void adc_init(void)
 {
@@ -374,9 +369,7 @@ void adc_poll(void)
 	}
 }
 
-// =====================================================
 // DHT11 - INICIO DE MEDICION
-// =====================================================
 
 void dht_iniciar(uint32_t ahora)
 {
@@ -393,9 +386,7 @@ void dht_iniciar(uint32_t ahora)
 	DDRD |= (1 << DHT_PIN);
 }
 
-// =====================================================
 // DHT11 - PROCESAMIENTO
-// =====================================================
 
 void dht_poll(uint32_t ahora)
 {
@@ -462,4 +453,135 @@ void dht_poll(uint32_t ahora)
 			temperatura_valida = 0;
 		}
 	}
+}
+
+// LCD - PREPARACION DE TEXTO
+
+static void lcd_copiar_linea(
+uint8_t fila,
+const char *texto
+)
+{
+	uint8_t i = 0;
+
+	while (i < 16 && texto[i])
+	{
+		lcd_objetivo[
+		(uint8_t)(fila * 16U + i)
+		] = texto[i];
+
+		i++;
+	}
+
+	while (i < 16)
+	{
+		lcd_objetivo[
+		(uint8_t)(fila * 16U + i)
+		] = ' ';
+
+		i++;
+	}
+}
+
+void lcd_actualizar(void)
+{
+	char linea[17];
+
+	if (estado == ACTIVO)
+	{
+		lcd_copiar_linea(0, "ESTADO: ACTIVO");
+
+		if (temperatura_valida)
+		{
+			snprintf(
+			linea,
+			sizeof(linea),
+			"ADC:%4u T:%2uC",
+			(unsigned)valor_adc,
+			(unsigned)temperatura
+			);
+		}
+		else
+		{
+			snprintf(
+			linea,
+			sizeof(linea),
+			"ADC:%4u T:--",
+			(unsigned)valor_adc
+			);
+		}
+
+		lcd_copiar_linea(1, linea);
+	}
+	else if (estado == STANDBY)
+	{
+		lcd_copiar_linea(0, "ESTADO: STANDBY");
+		lcd_copiar_linea(1, "Esperando...");
+	}
+	else if (estado == APAGADO)
+	{
+		lcd_copiar_linea(0, "ESTADO: APAGADO");
+		lcd_copiar_linea(1, "Sistema inactivo");
+	}
+	else
+	{
+		lcd_copiar_linea(0, "EMERGENCIA");
+		lcd_copiar_linea(1, "SALIDAS SEGURAS");
+	}
+
+	lcd_indice = 0;
+	lcd_pendiente = 1;
+}
+
+// LCD - ENVIO DISTRIBUIDO DE CARACTERES
+
+void lcd_poll(
+uint32_t ahora,
+uint32_t *t_caracter
+)
+{
+	if (
+	!lcd_pendiente ||
+	(uint32_t)(ahora - *t_caracter) <
+	LCD_CARACTER_MS
+	)
+	{
+		return;
+	}
+
+	*t_caracter = ahora;
+
+	while (
+	lcd_indice < LCD_CARACTERES &&
+	lcd_enviado[lcd_indice] ==
+	lcd_objetivo[lcd_indice]
+	)
+	{
+		lcd_indice++;
+	}
+
+	if (lcd_indice == LCD_CARACTERES)
+	{
+		lcd_pendiente = 0;
+		return;
+	}
+
+	uint8_t indice = lcd_indice;
+	uint8_t fila = indice / 16U;
+	uint8_t col = indice % 16U;
+
+	twi_lcd_cmd(
+	(uint8_t)(
+	(fila ? 0xC0 : 0x80) + col
+	)
+	);
+
+	twi_lcd_dwr(
+	(uint8_t)lcd_objetivo[indice]
+	);
+
+	lcd_enviado[indice] =
+	lcd_objetivo[indice];
+
+	lcd_indice++;
 }
