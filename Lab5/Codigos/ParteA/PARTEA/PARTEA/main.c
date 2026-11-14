@@ -713,3 +713,131 @@ uint32_t *t_caracter
 
 	lcd_indice++;
 }
+
+// FUNCION PRINCIPAL
+
+int main(void)
+{
+	cli();
+
+	gpio_init();
+	timers_init();
+	adc_init();
+
+	uart_init(103);
+
+	twi_init();
+
+	// Mantener A0 como entrada analogica
+	DDRC &= ~(1 << PC0);
+	PORTC &= ~(1 << PC0);
+
+	sei();
+
+	twi_lcd_init();
+
+	// Display encendido, cursor sin parpadeo
+	twi_lcd_cmd(0x0C);
+
+	for (uint8_t i = 0; i < LCD_CARACTERES; i++)
+	{
+		lcd_enviado[i] = '\0';
+	}
+
+	lcd_actualizar();
+
+	uint32_t ahora = millis_sistema();
+
+	uint32_t t_led = ahora;
+	uint32_t t_lcd = ahora;
+	uint32_t t_lcd_caracter = ahora;
+	uint32_t t_dht = ahora;
+	uint32_t t_actividad = ahora;
+	uint32_t t_buzzer = ahora;
+	uint32_t t_raw = ahora;
+	uint32_t t_presion = ahora;
+
+	uint8_t raw_prev =
+	(PIND & (1 << BOTON_PIN)) ? 1 : 0;
+
+	uint8_t boton_estable = raw_prev;
+
+	uint8_t pulsacion_larga = 0;
+	uint8_t recuperar_emergencia = 0;
+	uint8_t buzzer_activo = 0;
+	uint8_t pulsacion_por_int0 = 0;
+	uint8_t estado_anterior = estado;
+
+	
+	// BUCLE PRINCIPAL
+
+	while (1)
+	{
+		ahora = millis_sistema();
+
+	
+		// PULSADOR - ANTIRREBOTE E INT0
+
+		uint8_t raw =
+		(PIND & (1 << BOTON_PIN)) ? 1 : 0;
+
+		if (raw != raw_prev)
+		{
+			raw_prev = raw;
+			t_raw = ahora;
+		}
+
+		if (
+		raw != boton_estable &&
+		(uint32_t)(ahora - t_raw) >= ANTIRREBOTE
+		)
+		{
+			boton_estable = raw;
+
+			if (!boton_estable)
+			{
+				uint8_t s = SREG;
+				cli();
+
+				pulsacion_por_int0 = flag_boton;
+				flag_boton = 0;
+
+				SREG = s;
+
+				if (pulsacion_por_int0)
+				{
+					t_presion = ahora;
+					pulsacion_larga = 0;
+					recuperar_emergencia = 0;
+				}
+			}
+			else if (pulsacion_por_int0)
+			{
+				if (!pulsacion_larga)
+				{
+					if (estado != EMERGENCIA)
+					{
+						estado = ACTIVO;
+						t_actividad = ahora;
+
+						PORTB |= (1 << BUZZER_PIN);
+
+						buzzer_activo = 1;
+						t_buzzer = ahora;
+					}
+				}
+				else if (
+				estado == EMERGENCIA &&
+				recuperar_emergencia
+				)
+				{
+					estado = ACTIVO;
+					t_actividad = ahora;
+					t_led = ahora;
+
+					recuperar_emergencia = 0;
+				}
+
+				pulsacion_por_int0 = 0;
+			}
+		}
