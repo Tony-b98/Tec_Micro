@@ -41,9 +41,14 @@
 # Draw.io
 !*.drawio
 
+# App Inventor
+!*.aia
+
 # El propio gitignore
 !.gitignore
 
 # Archivos de solución de Microchip Studio
-*.atslnDebug/
-/Lab4/Codigos/Parte B/Arduino esclavo/Arduino esclavo/Debug/
+!*.atsln
+
+# Carpeta de compilación que no se sube
+/Lab4/Codigos/Par
