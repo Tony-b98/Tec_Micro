@@ -87,3 +87,99 @@ uint16_t valor_adc = 0;
 uint8_t temperatura = 0;
 uint8_t humedad = 0;
 uint8_t temperatura_valida = 0;
+
+// DHT11
+#define DHT_INACTIVO 0
+#define DHT_INICIO_LOW 1
+#define DHT_RESP_LOW 2
+#define DHT_RESP_HIGH 3
+#define DHT_BIT_LOW 4
+#define DHT_BIT_HIGH 5
+#define DHT_TERMINADO 6
+#define DHT_ERROR 7
+#define DHT_MEDIR_HIGH 8
+
+volatile uint8_t dht_estado = DHT_INACTIVO;
+volatile uint8_t dht_datos[5];
+volatile uint8_t dht_bits = 0;
+volatile uint8_t dht_inicio_pulso = 0;
+
+uint32_t dht_inicio_ms = 0;
+
+// LCD - ACTUALIZACION DISTRIBUIDA
+char lcd_objetivo[LCD_CARACTERES];
+char lcd_enviado[LCD_CARACTERES];
+
+uint8_t lcd_indice = 0;
+uint8_t lcd_pendiente = 1;
+volatile uint8_t lcd_twi_resultado = LCD_TWI_LIBRE;
+volatile uint8_t lcd_twi_datos[10];
+volatile uint8_t lcd_twi_indice = 0;
+volatile uint8_t lcd_twi_caracter_indice = 0;
+volatile uint8_t lcd_twi_caracter = 0;
+uint32_t lcd_twi_inicio_ms = 0;
+uint16_t lcd_twi_errores = 0;
+
+#define ALARM_CAPACITY 8U
+#define ALARM_WDT_WAKE 4U
+
+uint8_t alarm_codes[ALARM_CAPACITY];
+uint8_t alarm_values[ALARM_CAPACITY];
+uint8_t alarm_head = 0;
+uint8_t alarm_count = 0;
+
+// PROTOTIPOS
+uint32_t millis_sistema(void);
+void gpio_init(void);
+void timers_init(void);
+void adc_init(void);
+void adc_poll(void);
+void dht_iniciar(uint32_t ahora);
+void dht_poll(uint32_t ahora);
+void process_com_commands(
+uint32_t ahora,
+uint32_t *t_actividad,
+uint32_t *t_led,
+uint8_t *buzzer_temporizado,
+uint8_t *apagado_aviso_enviado
+);
+uint8_t send_status(uint8_t response_command);
+static void send_ack(uint8_t command);
+static void send_nak(uint8_t command, const char *reason);
+static void record_activity(
+uint32_t ahora,
+uint32_t *t_actividad,
+uint32_t *t_led,
+uint8_t *apagado_aviso_enviado,
+uint8_t despertar_standby
+);
+static uint8_t power_down_wait_button(void);
+static void sleep_idle(void);
+static void timers_standby_init(void);
+static void watchdog_interrupt_8s(void);
+#if WDT_MODO == WDT_MODO_RESET
+static void watchdog_reset_test(void);
+static void watchdog_test_delay_ms(uint8_t ms);
+static void watchdog_test_blink(uint8_t count);
+#endif
+static uint16_t adc_read_power_down(void);
+static uint16_t adc_read_average(void);
+static uint16_t adc_convert_once(void);
+static uint16_t adc_filtrar_muestra(uint16_t muestra);
+void alarm_log(uint8_t code, uint8_t value);
+static void lcd_copiar_linea(uint8_t fila, const char *texto);
+void lcd_actualizar(void);
+void lcd_poll(uint32_t ahora, uint32_t *t_caracter);
+int main(void);
+
+#if WDT_MODO == WDT_MODO_RESET
+void watchdog_early_init(void)
+__attribute__((naked, section(".init3")));
+
+void watchdog_early_init(void)
+{
+	watchdog_reset_cause = MCUSR;
+	MCUSR = 0;
+	wdt_disable();
+}
+#endif
