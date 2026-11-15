@@ -841,3 +841,136 @@ int main(void)
 				pulsacion_por_int0 = 0;
 			}
 		}
+// PULSACION LARGA - EMERGENCIA
+if (
+!boton_estable &&
+pulsacion_por_int0 &&
+!pulsacion_larga &&
+(uint32_t)(ahora - t_presion) >= TIEMPO_LARGO
+)
+{
+	pulsacion_larga = 1;
+
+	if (estado != EMERGENCIA)
+	{
+		estado = EMERGENCIA;
+
+		PORTB &= ~(
+		(1 << LED_PIN) |
+		(1 << BUZZER_PIN)
+		);
+
+		buzzer_activo = 0;
+		recuperar_emergencia = 0;
+	}
+	else
+	{
+		recuperar_emergencia = 1;
+	}
+}
+
+// BUZZER
+if (
+buzzer_activo &&
+(uint32_t)(ahora - t_buzzer) >= TIEMPO_BUZZER
+)
+{
+	PORTB &= ~(1 << BUZZER_PIN);
+	buzzer_activo = 0;
+}
+
+// MAQUINA DE ESTADOS
+if (
+estado == ACTIVO &&
+(uint32_t)(ahora - t_actividad) >=
+TIEMPO_STANDBY
+)
+{
+	estado = STANDBY;
+}
+else if (
+estado == STANDBY &&
+(uint32_t)(ahora - t_actividad) >=
+TIEMPO_APAGADO
+)
+{
+	estado = APAGADO;
+}
+
+if (estado != estado_anterior)
+{
+	estado_anterior = estado;
+	lcd_actualizar();
+	t_lcd = ahora;
+}
+
+// LED CADA 200 ms
+if (
+(uint32_t)(ahora - t_led) >= PERIODO_LED
+)
+{
+	t_led += PERIODO_LED;
+
+	if (
+	(uint32_t)(ahora - t_led) >= PERIODO_LED
+	)
+	{
+		t_led = ahora;
+	}
+
+	if (estado == ACTIVO)
+	{
+		PORTB ^= (1 << LED_PIN);
+
+		uart_led(
+		millis_sistema(),
+		(PORTB & (1 << LED_PIN)) ? 1 : 0
+		);
+	}
+	else
+	{
+		PORTB &= ~(1 << LED_PIN);
+	}
+}
+
+// ADC CADA 100 ms
+if (estado == ACTIVO)
+{
+	adc_poll();
+}
+else
+{
+	uint8_t s = SREG;
+	cli();
+
+	solicitudes_adc = 0;
+
+	SREG = s;
+}
+
+// DHT11 CADA 2 SEGUNDOS
+dht_poll(ahora);
+
+if (
+estado == ACTIVO &&
+dht_estado == DHT_INACTIVO &&
+(uint32_t)(ahora - t_dht) >= PERIODO_DHT
+)
+{
+	t_dht = ahora;
+	dht_iniciar(ahora);
+}
+
+// LCD CADA 500 ms
+
+if (
+(uint32_t)(ahora - t_lcd) >= PERIODO_LCD
+)
+{
+	t_lcd = ahora;
+	lcd_actualizar();
+}
+
+lcd_poll(ahora, &t_lcd_caracter);
+}
+}
