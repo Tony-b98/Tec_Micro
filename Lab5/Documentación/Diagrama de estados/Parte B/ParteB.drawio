@@ -1,0 +1,91 @@
+<mxfile host="app.diagrams.net">
+  <diagram name="Página-1" id="p8Nn4t30tEzpLOJFKmUR">
+    <mxGraphModel dx="2076" dy="936" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="stA" parent="1" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#FFFFFF;strokeColor=#000000;strokeWidth=2;fontColor=#000000;fontSize=12;align=center;verticalAlign=middle;" value="&lt;b&gt;ACTIVO&lt;/b&gt;&lt;div&gt;LED: parpadea&lt;/div&gt;&lt;div&gt;Buzzer: pitido al pulsar&lt;/div&gt;&lt;div&gt;ADC y DHT11: lecturas&lt;/div&gt;&lt;div&gt;LCD: datos&lt;/div&gt;&lt;div&gt;Sleep: IDLE entre tareas&lt;/div&gt;&lt;div&gt;Bluetooth: activo&lt;/div&gt;" vertex="1">
+          <mxGeometry height="200" width="200" x="100" y="200" as="geometry" />
+        </mxCell>
+        <mxCell id="stS" parent="1" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#FFFFFF;strokeColor=#000000;strokeWidth=2;fontColor=#000000;fontSize=12;align=center;verticalAlign=middle;" value="&lt;b&gt;STANDBY&lt;/b&gt;&lt;div&gt;LED: apagado&lt;/div&gt;&lt;div&gt;LCD: Esperando...&lt;/div&gt;&lt;div&gt;ADC y DHT11: suspendidos&lt;/div&gt;&lt;div&gt;Sleep: IDLE&lt;/div&gt;&lt;div&gt;PRR: ADC, Timer1 y Timer2&lt;/div&gt;&lt;div&gt;Bluetooth: activo&lt;/div&gt;" vertex="1">
+          <mxGeometry height="200" width="200" x="520" y="200" as="geometry" />
+        </mxCell>
+        <mxCell id="stP" parent="1" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#FFFFFF;strokeColor=#000000;strokeWidth=2;fontColor=#000000;fontSize=12;align=center;verticalAlign=middle;" value="&lt;b&gt;APAGADO&lt;/b&gt;&lt;div&gt;LED: apagado&lt;/div&gt;&lt;div&gt;LCD: sin retroiluminación&lt;/div&gt;&lt;div&gt;ADC y DHT11: suspendidos&lt;/div&gt;&lt;div&gt;Sleep: POWER-DOWN&lt;/div&gt;&lt;div&gt;WDT: 8 s&lt;/div&gt;&lt;div&gt;Bluetooth: inactivo&lt;/div&gt;" vertex="1">
+          <mxGeometry height="200" width="200" x="940" y="200" as="geometry" />
+        </mxCell>
+        <mxCell id="stE" parent="1" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#FFFFFF;strokeColor=#000000;strokeWidth=2;fontColor=#000000;fontSize=12;align=center;verticalAlign=middle;" value="&lt;b&gt;EMERGENCIA&lt;/b&gt;&lt;div&gt;LED: apagado&lt;/div&gt;&lt;div&gt;Buzzer: apagado&lt;/div&gt;&lt;div&gt;Bluetooth: M y A denegados&lt;/div&gt;&lt;div&gt;LCD: EMERGENCIA&lt;/div&gt;&lt;div&gt;Salidas seguras&lt;/div&gt;&lt;div&gt;Sleep: IDLE&lt;/div&gt;" vertex="1">
+          <mxGeometry height="200" width="200" x="520" y="580" as="geometry" />
+        </mxCell>
+        <mxCell id="tr1" edge="1" parent="1" style="endArrow=classic;html=1;rounded=0;edgeStyle=none;strokeColor=#000000;strokeWidth=2;fontColor=#000000;fontSize=12;labelBackgroundColor=#FFFFFF;align=center;entryX=0.0000;entryY=0.5000;entryDx=0;entryDy=0;entryPerimeter=0;" target="stA" value="INICIO">
+          <mxGeometry relative="1" x="-1" as="geometry">
+            <mxPoint x="22" y="-14" as="offset" />
+            <mxPoint x="30" y="300" as="sourcePoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="tr2" edge="1" parent="1" source="stA" style="endArrow=classic;html=1;rounded=0;edgeStyle=none;strokeColor=#000000;strokeWidth=2;fontColor=#000000;fontSize=12;labelBackgroundColor=#FFFFFF;align=center;exitX=0.9770;exitY=0.3500;exitDx=0;exitDy=0;exitPerimeter=0;entryX=0.0230;entryY=0.3500;entryDx=0;entryDy=0;entryPerimeter=0;" target="stS" value="10 s sin actividad&lt;div&gt;o Bluetooth: M=1&lt;/div&gt;">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint y="-22" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="tr3" edge="1" parent="1" source="stS" style="endArrow=classic;html=1;rounded=0;edgeStyle=none;strokeColor=#000000;strokeWidth=2;fontColor=#000000;fontSize=12;labelBackgroundColor=#FFFFFF;align=center;exitX=0.0230;exitY=0.6500;exitDx=0;exitDy=0;exitPerimeter=0;entryX=0.9770;entryY=0.6500;entryDx=0;entryDy=0;entryPerimeter=0;" target="stA" value="Pulsación válida&lt;div&gt;o Bluetooth: M=0 / A&lt;/div&gt;">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint y="22" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="tr4" edge="1" parent="1" source="stS" style="endArrow=classic;html=1;rounded=0;edgeStyle=none;strokeColor=#000000;strokeWidth=2;fontColor=#000000;fontSize=12;labelBackgroundColor=#FFFFFF;align=center;exitX=0.9770;exitY=0.3500;exitDx=0;exitDy=0;exitPerimeter=0;entryX=0.0230;entryY=0.3500;entryDx=0;entryDy=0;entryPerimeter=0;" target="stP" value="30 s desde último evento&lt;div&gt;o Bluetooth: M=2&lt;/div&gt;">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint y="-22" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="tr5" edge="1" parent="1" source="stA" style="endArrow=classic;html=1;rounded=0;edgeStyle=none;strokeColor=#000000;strokeWidth=2;fontColor=#000000;fontSize=12;labelBackgroundColor=#FFFFFF;align=center;exitX=0.7000;exitY=0.0415;exitDx=0;exitDy=0;exitPerimeter=0;entryX=0.3000;entryY=0.0415;entryDx=0;entryDy=0;entryPerimeter=0;" target="stP" value="Bluetooth: M=2">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint as="offset" />
+            <Array as="points">
+              <mxPoint x="240" y="150" />
+              <mxPoint x="1000" y="150" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="tr6" edge="1" parent="1" source="stP" style="endArrow=classic;html=1;rounded=0;edgeStyle=none;strokeColor=#000000;strokeWidth=2;fontColor=#000000;fontSize=12;labelBackgroundColor=#FFFFFF;align=center;exitX=0.5000;exitY=0.0000;exitDx=0;exitDy=0;exitPerimeter=0;entryX=0.5000;entryY=0.0000;entryDx=0;entryDy=0;entryPerimeter=0;" target="stA" value="Pulsación válida (D2/INT0)">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint as="offset" />
+            <Array as="points">
+              <mxPoint x="1040" y="100" />
+              <mxPoint x="200" y="100" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="tr7" edge="1" parent="1" source="stS" style="endArrow=classic;html=1;rounded=0;edgeStyle=none;strokeColor=#000000;strokeWidth=2;fontColor=#000000;fontSize=12;labelBackgroundColor=#FFFFFF;align=center;exitX=0.5000;exitY=1.0000;exitDx=0;exitDy=0;exitPerimeter=0;entryX=0.5000;entryY=0.0000;entryDx=0;entryDy=0;entryPerimeter=0;" target="stE" value="Pulsación mantenida 3 s&lt;div&gt;o Bluetooth: E&lt;/div&gt;">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="84" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="tr8" edge="1" parent="1" source="stA" style="endArrow=classic;html=1;rounded=0;edgeStyle=none;strokeColor=#000000;strokeWidth=2;fontColor=#000000;fontSize=12;labelBackgroundColor=#FFFFFF;align=center;exitX=0.6500;exitY=0.9770;exitDx=0;exitDy=0;exitPerimeter=0;entryX=0.0230;entryY=0.3500;entryDx=0;entryDy=0;entryPerimeter=0;" target="stE" value="Pulsación mantenida 3 s&lt;div&gt;o Bluetooth: E&lt;/div&gt;">
+          <mxGeometry relative="1" x="0.25" as="geometry">
+            <mxPoint y="-22" as="offset" />
+            <Array as="points">
+              <mxPoint x="230" y="650" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="tr9" edge="1" parent="1" source="stE" style="endArrow=classic;html=1;rounded=0;edgeStyle=none;strokeColor=#000000;strokeWidth=2;fontColor=#000000;fontSize=12;labelBackgroundColor=#FFFFFF;align=center;exitX=0.0230;exitY=0.6500;exitDx=0;exitDy=0;exitPerimeter=0;entryX=0.3500;entryY=0.9770;entryDx=0;entryDy=0;entryPerimeter=0;" target="stA" value="2.ª pulsación mantenida 3 s&lt;div&gt;y liberar&lt;/div&gt;">
+          <mxGeometry relative="1" x="-0.45" as="geometry">
+            <mxPoint y="22" as="offset" />
+            <Array as="points">
+              <mxPoint x="170" y="710" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="tr10" edge="1" parent="1" source="stP" style="endArrow=classic;html=1;rounded=0;edgeStyle=none;strokeColor=#000000;strokeWidth=2;fontColor=#000000;fontSize=12;labelBackgroundColor=#FFFFFF;align=center;exitX=0.9770;exitY=0.3500;exitDx=0;exitDy=0;exitPerimeter=0;entryX=0.9770;entryY=0.6500;entryDx=0;entryDy=0;entryPerimeter=0;" target="stP" value="WDT cada 8 s:&lt;div&gt;despierta, lee ADC0&lt;/div&gt;&lt;div&gt;y vuelve a Power-Down&lt;/div&gt;">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="78" as="offset" />
+            <Array as="points">
+              <mxPoint x="1200" y="270" />
+              <mxPoint x="1200" y="330" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
