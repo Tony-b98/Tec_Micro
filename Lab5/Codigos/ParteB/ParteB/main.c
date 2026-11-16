@@ -721,3 +721,588 @@ uint32_t millis_sistema(void)
 	SREG = s;
 	return t;
 }
+
+// INTERRUPCIONES DE TEMPORIZADORES
+
+ISR(TIMER0_COMPA_vect)
+{
+	if (estado == STANDBY)
+	{
+		tiempo_sistema += 10UL;
+	}
+	else
+	{
+		tiempo_sistema++;
+	}
+}
+
+ISR(TIMER1_COMPA_vect)
+{
+	if (estado == ACTIVO)
+	{
+		if (solicitudes_adc < 255)
+		{
+			solicitudes_adc++;
+		}
+		else if (adc_solicitudes_perdidas < 65535)
+		{
+			adc_solicitudes_perdidas++;
+		}
+	}
+}
+
+ISR(WDT_vect)
+{
+	wdt_despertar_pendiente = 1;
+	PORTB ^= (1 << PB1);
+	WDTCSR |= (1 << WDIE);
+}
+
+
+// INTERRUPCION EXTERNA INT0
+
+ISR(INT0_vect)
+{
+	flag_boton = 1;
+}
+
+// INTERRUPCION DHT11
+
+ISR(PCINT2_vect)
+{
+	if (dht_estado < DHT_RESP_LOW ||
+	dht_estado > DHT_MEDIR_HIGH)
+	return;
+
+	uint8_t alto =
+	(PIND & (1 << DHT_PIN)) != 0;
+
+	uint8_t tic = TCNT2;
+
+	if (dht_estado == DHT_RESP_LOW)
+	{
+		if (!alto)
+		dht_estado = DHT_RESP_HIGH;
+	}
+	else if (dht_estado == DHT_RESP_HIGH)
+	{
+		if (alto)
+		dht_estado = DHT_BIT_LOW;
+	}
+	else if (dht_estado == DHT_BIT_LOW)
+	{
+		if (!alto)
+		dht_estado = DHT_BIT_HIGH;
+	}
+	else if (dht_estado == DHT_BIT_HIGH)
+	{
+		if (alto)
+		{
+			dht_inicio_pulso = tic;
+			dht_estado = DHT_MEDIR_HIGH;
+		}
+	}
+	else if (dht_estado == DHT_MEDIR_HIGH && !alto)
+	{
+		uint8_t duracion = (uint8_t)(
+		tic - dht_inicio_pulso
+		);
+
+		if (duracion < 25U || duracion > 200U)
+		{
+			dht_estado = DHT_ERROR;
+			return;
+		}
+
+		uint8_t pos = dht_bits / 8U;
+
+		dht_datos[pos] = (uint8_t)(
+		(dht_datos[pos] << 1) |
+		(duracion >= 100U)
+		);
+
+		dht_bits++;
+
+		dht_estado =
+		(dht_bits == 40U) ?
+		DHT_TERMINADO :
+		DHT_BIT_HIGH;
+	}
+}
+
+// CONFIGURACION GPIO
+
+void gpio_init(void)
+{
+	DDRB |= (1 << LED_PIN) | (1 << BUZZER_PIN);
+
+	PORTB &= ~(
+	(1 << LED_PIN) |
+	(1 << BUZZER_PIN)
+	);
+
+	DDRD &= ~(
+	(1 << BOTON_PIN) |
+	(1 << DHT_PIN)
+	);
+
+	PORTD |=
+	(1 << BOTON_PIN) |
+	(1 << DHT_PIN);
+
+	DDRC &= ~(1 << PC0);
+	PORTC &= ~(1 << PC0);
+
+	// INT0: flanco descendente
+	EICRA = (1 << ISC01);
+	EIFR = (1 << INTF0);
+	EIMSK = (1 << INT0);
+
+	// DHT11: PCINT20
+	PCICR &= ~(1 << PCIE2);
+	PCMSK2 |= (1 << PCINT20);
+}
+
+// CONFIGURACION TEMPORIZADORES
+
+void timers_init(void)
+{
+	// TIMER0: base de 1 ms
+	TCCR0A = (1 << WGM01);
+	TCCR0B = (1 << CS01) | (1 << CS00);
+
+	TCNT0 = 0;
+	OCR0A = 249;
+	TIMSK0 = (1 << OCIE0A);
+
+	// TIMER1: interrupcion cada 100 ms
+	TCCR1A = 0;
+
+	TCCR1B =
+	(1 << WGM12) |
+	(1 << CS11) |
+	(1 << CS10);
+
+	TCNT1 = 0;
+	OCR1A = 24999;
+	TIMSK1 = (1 << OCIE1A);
+
+	// TIMER2: resolucion de 0.5 us
+	TCCR2A = 0;
+	TCCR2B = (1 << CS21);
+	TCNT2 = 0;
+}
+
+// ADC
+
+void adc_init(void)
+{
+	uint8_t s = SREG;
+	cli();
+
+	PRR &= ~(1 << PRADC);
+	ADCSRA = 0;
+	ADMUX = (1 << REFS0);
+	ADCSRB = 0;
+	DIDR0 |= (1 << ADC0D);
+
+	solicitudes_adc = 0;
+	adc_suma_muestras = 0;
+	adc_indice_muestra = 0;
+	adc_cantidad_muestras = 0;
+
+	ADCSRA =
+	(1 << ADEN) |
+	(1 << ADPS2) |
+	(1 << ADPS1) |
+	(1 << ADPS0);
+
+	(void)adc_convert_once();
+
+	SREG = s;
+}
+
+void adc_poll(void)
+{
+	uint8_t s = SREG;
+	cli();
+
+	uint8_t leer = (solicitudes_adc != 0);
+	solicitudes_adc = 0;
+
+	SREG = s;
+
+	if (!leer)
+	{
+		return;
+	}
+
+	ADMUX = (1 << REFS0);
+	valor_adc = adc_filtrar_muestra(adc_read_average());
+}
+
+static uint16_t adc_convert_once(void)
+{
+	ADCSRA |= (1 << ADSC);
+
+	while (ADCSRA & (1 << ADSC))
+	{
+	}
+
+	return ADC;
+}
+
+static uint16_t adc_read_average(void)
+{
+	uint32_t suma = 0;
+
+	for (uint8_t i = 0; i < ADC_RAW_SAMPLES; i++)
+	{
+		suma += adc_convert_once();
+	}
+
+	return (uint16_t)(
+	(suma + (ADC_RAW_SAMPLES / 2U)) / ADC_RAW_SAMPLES
+	);
+}
+
+static uint16_t adc_filtrar_muestra(uint16_t muestra)
+{
+	if (adc_cantidad_muestras < ADC_FILTER_SAMPLES)
+	{
+		adc_muestras[adc_indice_muestra] = muestra;
+		adc_suma_muestras += muestra;
+		adc_cantidad_muestras++;
+	}
+	else
+	{
+		adc_suma_muestras -= adc_muestras[adc_indice_muestra];
+		adc_muestras[adc_indice_muestra] = muestra;
+		adc_suma_muestras += muestra;
+	}
+
+	adc_indice_muestra++;
+	if (adc_indice_muestra >= ADC_FILTER_SAMPLES)
+	{
+		adc_indice_muestra = 0;
+	}
+
+	return (uint16_t)(
+	adc_suma_muestras / adc_cantidad_muestras
+	);
+}
+
+// DHT11 - INICIO DE MEDICION
+
+void dht_iniciar(uint32_t ahora)
+{
+	for (uint8_t i = 0; i < 5; i++)
+	dht_datos[i] = 0;
+
+	dht_bits = 0;
+	dht_inicio_ms = ahora;
+	dht_estado = DHT_INICIO_LOW;
+
+	PCICR &= ~(1 << PCIE2);
+
+	PORTD &= ~(1 << DHT_PIN);
+	DDRD |= (1 << DHT_PIN);
+}
+
+// DHT11 - PROCESAMIENTO
+
+void dht_poll(uint32_t ahora)
+{
+	if (
+	dht_estado == DHT_INICIO_LOW &&
+	(uint32_t)(ahora - dht_inicio_ms) >= 20UL
+	)
+	{
+		uint8_t s = SREG;
+		cli();
+
+		PORTD |= (1 << DHT_PIN);
+		DDRD &= ~(1 << DHT_PIN);
+
+		dht_estado = DHT_RESP_LOW;
+
+		PCIFR = (1 << PCIF2);
+		PCICR |= (1 << PCIE2);
+
+		SREG = s;
+	}
+
+	if (
+	dht_estado == DHT_TERMINADO ||
+	dht_estado == DHT_ERROR ||
+	(
+	dht_estado != DHT_INACTIVO &&
+	(uint32_t)(ahora - dht_inicio_ms) > 35UL
+	)
+	)
+	{
+		uint8_t s = SREG;
+		cli();
+
+		PCICR &= ~(1 << PCIE2);
+
+		uint8_t listo =
+		(dht_estado == DHT_TERMINADO);
+
+		uint8_t bytes[5];
+
+		for (uint8_t i = 0; i < 5; i++)
+		bytes[i] = dht_datos[i];
+
+		dht_estado = DHT_INACTIVO;
+
+		SREG = s;
+
+		uint8_t suma = (uint8_t)(
+		bytes[0] +
+		bytes[1] +
+		bytes[2] +
+		bytes[3]
+		);
+
+		if (listo && suma == bytes[4])
+		{
+			humedad = bytes[0];
+			temperatura = bytes[2];
+			temperatura_valida = 1;
+		}
+		else
+		{
+			temperatura_valida = 0;
+			alarm_log(3U, 1U);
+		}
+	}
+}
+
+// LCD - PREPARACION DE TEXTO
+
+static void lcd_copiar_linea(
+uint8_t fila,
+const char *texto
+)
+{
+	uint8_t i = 0;
+
+	while (i < 16 && texto[i])
+	{
+		lcd_objetivo[
+		(uint8_t)(fila * 16U + i)
+		] = texto[i];
+
+		i++;
+	}
+
+	while (i < 16)
+	{
+		lcd_objetivo[
+		(uint8_t)(fila * 16U + i)
+		] = ' ';
+
+		i++;
+	}
+}
+
+void lcd_actualizar(void)
+{
+	char linea[17];
+
+	#if WDT_MODO == WDT_MODO_RESET
+	if (estado == ACTIVO && watchdog_reset_test_active)
+	{
+		lcd_copiar_linea(0, "PRUEBA WDT RESET");
+		lcd_copiar_linea(1, "Supervision WDT");
+	}
+	else
+	#endif
+	if (estado == ACTIVO)
+	{
+		lcd_copiar_linea(0, "ESTADO: ACTIVO");
+
+		if (temperatura_valida)
+		{
+			snprintf(
+			linea,
+			sizeof(linea),
+			"ADC:%4u T:%2uC",
+			(unsigned)valor_adc,
+			(unsigned)temperatura
+			);
+		}
+		else
+		{
+			snprintf(
+			linea,
+			sizeof(linea),
+			"ADC:%4u T:--",
+			(unsigned)valor_adc
+			);
+		}
+
+		lcd_copiar_linea(1, linea);
+	}
+	else if (estado == STANDBY)
+	{
+		lcd_copiar_linea(0, "ESTADO: STANDBY");
+		lcd_copiar_linea(1, "Esperando...");
+	}
+	else if (estado == APAGADO)
+	{
+		lcd_copiar_linea(0, "ESTADO: APAGADO");
+		lcd_copiar_linea(1, "Sistema inactivo");
+	}
+	else
+	{
+		lcd_copiar_linea(0, "EMERGENCIA");
+		lcd_copiar_linea(1, "SALIDAS SEGURAS");
+	}
+
+	lcd_indice = 0;
+	lcd_pendiente = 1;
+}
+
+// LCD - ENVIO DISTRIBUIDO DE CARACTERES
+
+void lcd_poll(
+uint32_t ahora,
+uint32_t *t_caracter
+)
+{
+	if (lcd_twi_resultado == LCD_TWI_OK)
+	{
+		lcd_enviado[lcd_twi_caracter_indice] =
+		(char)lcd_twi_caracter;
+		lcd_twi_resultado = LCD_TWI_LIBRE;
+	}
+	else if (lcd_twi_resultado == LCD_TWI_ERROR)
+	{
+		if (lcd_twi_errores < UINT16_MAX)
+		{
+			lcd_twi_errores++;
+		}
+
+		lcd_indice = lcd_twi_caracter_indice;
+		lcd_twi_resultado = LCD_TWI_LIBRE;
+	}
+
+	if (lcd_twi_resultado == LCD_TWI_ACTIVO)
+	{
+		if ((uint32_t)(ahora - lcd_twi_inicio_ms) >=
+		LCD_TWI_TIMEOUT_MS)
+		{
+			uint8_t s = SREG;
+			cli();
+
+			if (lcd_twi_resultado == LCD_TWI_ACTIVO)
+			{
+				TWCR = 0;
+				TWCR = (1 << TWEN);
+				lcd_twi_resultado = LCD_TWI_ERROR;
+			}
+
+			SREG = s;
+		}
+
+		return;
+	}
+
+	if (
+	!lcd_pendiente ||
+	(uint32_t)(ahora - *t_caracter) < LCD_CARACTER_MS ||
+	(TWCR & (1 << TWSTO))
+	)
+	{
+		return;
+	}
+
+	*t_caracter = ahora;
+
+	while (
+	lcd_indice < LCD_CARACTERES &&
+	lcd_enviado[lcd_indice] ==
+	lcd_objetivo[lcd_indice]
+	)
+	{
+		lcd_indice++;
+	}
+
+	if (lcd_indice == LCD_CARACTERES)
+	{
+		lcd_pendiente = 0;
+		return;
+	}
+
+	uint8_t indice = lcd_indice;
+	uint8_t fila = indice / 16U;
+	uint8_t col = indice % 16U;
+	uint8_t comando = (uint8_t)(
+	(fila ? 0xC0U : 0x80U) + col
+	);
+	uint8_t caracter = (uint8_t)lcd_objetivo[indice];
+
+	lcd_twi_datos[0] = 0x08;
+	lcd_twi_datos[1] = (uint8_t)((comando & 0xF0U) | 0x0CU);
+	lcd_twi_datos[2] = (uint8_t)((comando & 0xF0U) | 0x08U);
+	lcd_twi_datos[3] = (uint8_t)(((comando << 4) & 0xF0U) | 0x0CU);
+	lcd_twi_datos[4] = (uint8_t)(((comando << 4) & 0xF0U) | 0x08U);
+	lcd_twi_datos[5] = 0x09;
+	lcd_twi_datos[6] = (uint8_t)((caracter & 0xF0U) | 0x0DU);
+	lcd_twi_datos[7] = (uint8_t)((caracter & 0xF0U) | 0x09U);
+	lcd_twi_datos[8] = (uint8_t)(((caracter << 4) & 0xF0U) | 0x0DU);
+	lcd_twi_datos[9] = (uint8_t)(((caracter << 4) & 0xF0U) | 0x09U);
+
+	lcd_twi_indice = 0;
+	lcd_twi_caracter_indice = indice;
+	lcd_twi_caracter = caracter;
+	lcd_twi_inicio_ms = ahora;
+	lcd_twi_resultado = LCD_TWI_ACTIVO;
+	lcd_indice++;
+
+	TWCR = (1 << TWINT) |
+	(1 << TWSTA) |
+	(1 << TWEN) |
+	(1 << TWIE);
+}
+
+ISR(TWI_vect)
+{
+	uint8_t estado_twi = TWSR & 0xF8U;
+
+	if (estado_twi == TW_START ||
+	estado_twi == TW_REP_START)
+	{
+		TWDR = (uint8_t)(PCF8574 << 1);
+		TWCR = (1 << TWINT) |
+		(1 << TWEN) |
+		(1 << TWIE);
+	}
+	else if (estado_twi == TW_MT_SLA_ACK ||
+	estado_twi == TW_MT_DATA_ACK)
+	{
+		if (lcd_twi_indice < 10U)
+		{
+			TWDR = lcd_twi_datos[lcd_twi_indice++];
+			TWCR = (1 << TWINT) |
+			(1 << TWEN) |
+			(1 << TWIE);
+		}
+		else
+		{
+			TWCR = (1 << TWINT) |
+			(1 << TWEN) |
+			(1 << TWSTO);
+			lcd_twi_resultado = LCD_TWI_OK;
+		}
+	}
+	else
+	{
+		TWCR = (1 << TWINT) |
+		(1 << TWEN) |
+		(1 << TWSTO);
+		lcd_twi_resultado = LCD_TWI_ERROR;
+	}
+}
