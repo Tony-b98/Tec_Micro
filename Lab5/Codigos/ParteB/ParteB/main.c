@@ -264,3 +264,460 @@ static void timers_standby_init(void)
 	TIMSK0 = (1 << OCIE0A);
 	TCCR0B = (1 << CS02) | (1 << CS00);
 }
+static void watchdog_interrupt_8s(void)
+{
+	MCUSR &= ~(1 << WDRF);
+	wdt_reset();
+	WDTCSR = (1 << WDCE) | (1 << WDE);
+	WDTCSR = (1 << WDIE) | (1 << WDP3) | (1 << WDP0);
+}
+
+static uint16_t adc_read_power_down(void)
+{
+	PRR &= ~(1 << PRADC);
+	DDRC &= ~(1 << PC0);
+	PORTC &= ~(1 << PC0);
+	ADMUX = (1 << REFS0);
+	ADCSRB = 0;
+	DIDR0 |= (1 << ADC0D);
+	ADCSRA =
+	(1 << ADEN) |
+	(1 << ADPS2) |
+	(1 << ADPS1) |
+	(1 << ADPS0);
+
+	(void)adc_convert_once();
+	uint16_t value = adc_read_average();
+	ADCSRA = 0;
+	PRR |= (1 << PRADC);
+	return value;
+}
+
+static uint8_t power_down_wait_button(void)
+{
+	if (
+	!hc05_tx_done() ||
+	lcd_pendiente ||
+	lcd_twi_resultado == LCD_TWI_ACTIVO
+	)
+	{
+		return 0;
+	}
+
+	lcd &= ~(1 << 3);
+	PCF8574_write(lcd);
+	while (TWCR & (1 << TWSTO))
+	{
+	}
+
+	cli();
+	flag_boton = 0;
+	PCICR &= ~(1 << PCIE2);
+	TIMSK0 = 0;
+	TIMSK1 = 0;
+	TIMSK2 = 0;
+	TCCR0A = 0;
+	TCCR0B = 0;
+	TCCR1A = 0;
+	TCCR1B = 0;
+	TCCR2A = 0;
+	TCCR2B = 0;
+	ADCSRA = 0;
+	TWCR = 0;
+	UCSR0B = 0;
+	ACSR |= (1 << ACD);
+	PRR |= APAGADO_PRR_MASK;
+
+	EICRA = 0;
+	EIFR = (1 << INTF0);
+	EIMSK = (1 << INT0);
+	set_sleep_mode(SLEEP_MODE_PWR_DOWN);
+	DDRB |= (1 << PB1);
+	PORTB &= ~(1 << PB1);
+	watchdog_interrupt_8s();
+
+	if (!(PIND & (1 << BOTON_PIN)))
+	{
+		flag_boton = 1;
+	}
+
+	while (!flag_boton)
+	{
+		wdt_despertar_pendiente = 0;
+		sleep_enable();
+		sleep_bod_disable();
+		sei();
+		sleep_cpu();
+		sleep_disable();
+		cli();
+
+		if (wdt_despertar_pendiente)
+		{
+			wdt_despertar_pendiente = 0;
+			sei();
+			valor_adc = adc_filtrar_muestra(adc_read_power_down());
+			wdt_despertares++;
+			alarm_log(ALARM_WDT_WAKE, (uint8_t)(valor_adc >> 2));
+			cli();
+		}
+	}
+
+	sleep_disable();
+	wdt_disable();
+	EIMSK = 0;
+	PRR &= ~APAGADO_PRR_MASK;
+	ACSR &= ~(1 << ACD);
+
+	timers_init();
+	adc_init();
+	twi_init();
+	DDRC &= ~(1 << PC0);
+	PORTC &= ~(1 << PC0);
+	twi_lcd_cmd(0x0C);
+	hc05_init(103);
+	protocol_init();
+
+	dht_estado = DHT_INACTIVO;
+	EICRA = (1 << ISC01);
+	EIFR = (1 << INTF0);
+	EIMSK = (1 << INT0);
+
+	estado = ACTIVO;
+	sei();
+	return 1;
+}
+
+// COMANDOS DE COMUNICACION CON TRAMAS ASCII BR
+static void send_ack(uint8_t command)
+{
+	char data[2] = {(char)command, '\0'};
+	(void)protocol_send_frame(COM_RESP_ACK, data);
+}
+
+static void send_nak(uint8_t command, const char *reason)
+{
+	char data[COM_MAX_DATA + 1U];
+	(void)snprintf(
+	data,
+	sizeof(data),
+	"%c,%s",
+	command ? (char)command : '?',
+	reason
+	);
+
+	(void)protocol_send_frame(COM_RESP_NAK, data);
+}
+
+static void record_activity(
+uint32_t ahora,
+uint32_t *t_actividad,
+uint32_t *t_led,
+uint8_t *apagado_aviso_enviado,
+uint8_t despertar_standby
+)
+{
+	*t_actividad = ahora;
+	*apagado_aviso_enviado = 0;
+
+	if (despertar_standby && estado == STANDBY)
+	{
+		estado = ACTIVO;
+		*t_led = ahora;
+	}
+}
+
+uint8_t send_status(uint8_t response_command)
+{
+	char data[COM_MAX_DATA + 1U];
+
+	if (response_command == COM_RESP_STATUS)
+	{
+		const char *estado_texto = "APAGADO";
+
+		if (estado == ACTIVO)
+		{
+			estado_texto = "ACTIVO";
+		}
+		else if (estado == STANDBY)
+		{
+			estado_texto = "STANDBY";
+		}
+		else if (estado == EMERGENCIA)
+		{
+			estado_texto = "EMERGENCIA";
+		}
+
+		(void)snprintf(
+		data,
+		sizeof(data),
+		"%s,%u,%u,%u,%u",
+		estado_texto,
+		(unsigned)valor_adc,
+		(unsigned)temperatura,
+		(unsigned)humedad,
+		(unsigned)temperatura_valida
+		);
+	}
+	else
+	{
+		(void)snprintf(
+		data,
+		sizeof(data),
+		"%u,%u,%u,%u",
+		(unsigned)valor_adc,
+		(unsigned)temperatura,
+		(unsigned)humedad,
+		(unsigned)temperatura_valida
+		);
+	}
+
+	return protocol_send_frame(response_command, data);
+}
+
+void process_com_commands(
+uint32_t ahora,
+uint32_t *t_actividad,
+uint32_t *t_led,
+uint8_t *buzzer_temporizado,
+uint8_t *apagado_aviso_enviado
+)
+{
+	com_command_t command;
+
+	while (protocol_get_command(&command))
+	{
+		if (command.command == COM_CMD_STATUS)
+		{
+			if (command.data[0] != '\0')
+			{
+				send_nak(command.command, "LENGTH");
+			}
+			else
+			{
+				record_activity(
+				ahora,
+				t_actividad,
+				t_led,
+				apagado_aviso_enviado,
+				0U
+				);
+
+				if (!send_status(COM_RESP_STATUS))
+				{
+					send_nak(command.command, "BUSY");
+				}
+			}
+		}
+		else if (command.command == COM_CMD_READ)
+		{
+			if (command.data[0] != '\0')
+			{
+				send_nak(command.command, "LENGTH");
+			}
+			else
+			{
+				record_activity(
+				ahora,
+				t_actividad,
+				t_led,
+				apagado_aviso_enviado,
+				0U
+				);
+
+				if (!send_status(COM_RESP_READ))
+				{
+					send_nak(command.command, "BUSY");
+				}
+			}
+		}
+		else if (command.command == COM_CMD_MODE)
+		{
+			if (command.data[0] < '0' ||
+			command.data[0] > '2' ||
+			command.data[1] != '\0')
+			{
+				send_nak(command.command, "DATA");
+			}
+			else if (estado == EMERGENCIA)
+			{
+				send_nak(command.command, "DENIED");
+			}
+			else
+			{
+				estado = (uint8_t)(command.data[0] - '0');
+				*t_actividad = ahora;
+				*apagado_aviso_enviado = 0;
+
+				if (estado == ACTIVO)
+				{
+					*t_led = ahora;
+				}
+
+				send_ack(command.command);
+			}
+		}
+		else if (command.command == COM_CMD_ACTUATOR)
+		{
+			if ((command.data[0] != '0' && command.data[0] != '1') ||
+			command.data[1] != '\0')
+			{
+				send_nak(command.command, "DATA");
+			}
+			else if (estado == EMERGENCIA)
+			{
+				send_nak(command.command, "DENIED");
+			}
+			else
+			{
+				if (command.data[0] == '1')
+				{
+					PORTB |= (1 << BUZZER_PIN);
+				}
+				else
+				{
+					PORTB &= ~(1 << BUZZER_PIN);
+				}
+
+				*buzzer_temporizado = 0;
+				record_activity(
+				ahora,
+				t_actividad,
+				t_led,
+				apagado_aviso_enviado,
+				1U
+				);
+				send_ack(command.command);
+			}
+		}
+		else if (command.command == COM_CMD_EMERGENCY)
+		{
+			if (command.data[0] != '\0')
+			{
+				send_nak(command.command, "LENGTH");
+			}
+			else
+			{
+				record_activity(
+				ahora,
+				t_actividad,
+				t_led,
+				apagado_aviso_enviado,
+				0U
+				);
+
+				if (estado != EMERGENCIA)
+				{
+					estado = EMERGENCIA;
+					PORTB &= ~(
+					(1 << LED_PIN) |
+					(1 << BUZZER_PIN)
+					);
+					*buzzer_temporizado = 0;
+				}
+
+				send_ack(command.command);
+			}
+		}
+		else if (command.command == COM_CMD_ALARMS)
+		{
+			if (command.data[0] != '\0')
+			{
+				send_nak(command.command, "LENGTH");
+				continue;
+			}
+
+			record_activity(
+			ahora,
+			t_actividad,
+			t_led,
+			apagado_aviso_enviado,
+			0U
+			);
+
+			char data[COM_MAX_DATA + 1U];
+			size_t used = 0U;
+			uint8_t failed = 0U;
+
+			for (uint8_t i = 0; i < alarm_count; i++)
+			{
+				uint8_t index = (uint8_t)(
+				(alarm_head + i) % ALARM_CAPACITY
+				);
+				int written = snprintf(
+				data + used,
+				sizeof(data) - used,
+				"%s%u,%u",
+				i ? ";" : "",
+				(unsigned)alarm_codes[index],
+				(unsigned)alarm_values[index]
+				);
+
+				if (
+				written < 0 ||
+				(size_t)written >= sizeof(data) - used
+				)
+				{
+					failed = 1U;
+					break;
+				}
+
+				used += (size_t)written;
+			}
+
+			if (failed)
+			{
+				send_nak(command.command, "OVERFLOW");
+				continue;
+			}
+
+			if (!used)
+			{
+				(void)snprintf(data, sizeof(data), "END");
+			}
+
+			if (!protocol_send_frame(COM_RESP_ALARM, data))
+			{
+				send_nak(command.command, "BUSY");
+			}
+		}
+		else
+		{
+			send_nak(command.command, "UNKNOWN");
+		}
+	}
+}
+
+void alarm_log(uint8_t code, uint8_t value)
+{
+	uint8_t index;
+
+	if (alarm_count < ALARM_CAPACITY)
+	{
+		index = (uint8_t)(
+		(alarm_head + alarm_count) % ALARM_CAPACITY
+		);
+		alarm_count++;
+	}
+	else
+	{
+		index = alarm_head;
+		alarm_head = (uint8_t)(
+		(alarm_head + 1U) % ALARM_CAPACITY
+		);
+	}
+
+	alarm_codes[index] = code;
+	alarm_values[index] = value;
+}
+
+// BASE TEMPORAL
+uint32_t millis_sistema(void)
+{
+	uint8_t s = SREG;
+	cli();
+
+	uint32_t t = tiempo_sistema;
+
+	SREG = s;
+	return t;
+}
