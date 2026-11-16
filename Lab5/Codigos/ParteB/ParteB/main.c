@@ -183,3 +183,84 @@ void watchdog_early_init(void)
 	wdt_disable();
 }
 #endif
+
+
+// Implementacion de funciones
+
+#if WDT_MODO == WDT_MODO_RESET
+static void watchdog_reset_test(void)
+{
+	gpio_init();
+	twi_init();
+	twi_lcd_init();
+
+	DDRB |= (1 << LED_PIN);
+	PORTB &= ~(1 << LED_PIN);
+	watchdog_test_blink(
+	(watchdog_reset_cause & (1 << WDRF)) ? 2U : 1U
+	);
+
+	if (watchdog_reset_cause & (1 << WDRF))
+	{
+		twi_lcd_cmd(0x80);
+		twi_lcd_msg("RESET WDT OK");
+		twi_lcd_cmd(0xC0);
+		twi_lcd_msg("Iniciando seguro");
+
+		for (uint8_t i = 0; i < 10U; i++)
+		{
+			watchdog_test_delay_ms(200U);
+		}
+
+		return;
+	}
+
+	twi_lcd_cmd(0x80);
+	twi_lcd_msg("PRUEBA WDT RESET");
+	twi_lcd_cmd(0xC0);
+	twi_lcd_msg("Sistema inicia");
+
+	wdt_enable(WDTO_8S);
+	watchdog_reset_test_active = 1;
+}
+
+static void watchdog_test_delay_ms(uint8_t ms)
+{
+	while (ms--)
+	{
+		_delay_loop_2(F_CPU / 4000UL);
+	}
+}
+
+static void watchdog_test_blink(uint8_t count)
+{
+	for (uint8_t i = 0; i < count; i++)
+	{
+		PORTB |= (1 << LED_PIN);
+		watchdog_test_delay_ms(150U);
+		PORTB &= ~(1 << LED_PIN);
+		watchdog_test_delay_ms(150U);
+	}
+}
+#endif
+
+static void sleep_idle(void)
+{
+	set_sleep_mode(SLEEP_MODE_IDLE);
+	cli();
+	sleep_enable();
+	sei();
+	sleep_cpu();
+	sleep_disable();
+}
+
+static void timers_standby_init(void)
+{
+	TCCR0A = (1 << WGM01);
+	TCCR0B = 0;
+	TCNT0 = 0;
+	OCR0A = 155;
+	TIFR0 = (1 << OCF0A);
+	TIMSK0 = (1 << OCIE0A);
+	TCCR0B = (1 << CS02) | (1 << CS00);
+}
