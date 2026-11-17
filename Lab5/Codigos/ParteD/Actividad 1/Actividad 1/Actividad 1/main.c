@@ -1,20 +1,6 @@
-// =====================================================
+
 // LABORATORIO 5 - PROBLEMA D - ACTIVIDAD 1
-// Comparacion de modos Sleep
-// ATmega328P - ARDUINO UNO - 16 MHz
-//
-// Cada pulsacion del boton (D2 / INT0) pasa al modo siguiente:
-//   1 parpadeo  : ACTIVO (CPU sin dormir)
-//   2 parpadeos : Idle
-//   3 parpadeos : ADC Noise Reduction
-//   4 parpadeos : Power-Down
-//   5 parpadeos : Power-Save
-// Despues de los parpadeos el LED queda apagado y el micro
-// permanece en ese modo hasta la siguiente pulsacion.
-//
-// D9 (PB1) es el pin de prueba: se pone en alto como primera
-// accion al despertar. Sirve tambien para la Actividad 3.
-// =====================================================
+
 
 #define F_CPU 16000000UL
 #include <avr/io.h>
