@@ -1306,3 +1306,198 @@ ISR(TWI_vect)
 		lcd_twi_resultado = LCD_TWI_ERROR;
 	}
 }
+// FUNCION PRINCIPAL Se carga a lo ultimo
+int main(void)
+{
+	cli();
+	#if WDT_MODO == WDT_MODO_RESET
+	watchdog_reset_test();
+	if (!watchdog_reset_test_active)
+	{
+		wdt_disable();
+	}
+	#endif
+	MCUSR &= ~(1 << WDRF);
+	#if WDT_MODO != WDT_MODO_RESET
+	wdt_disable();
+	#endif
+
+	gpio_init();
+	timers_init();
+	adc_init();
+
+	hc05_init(103);
+	protocol_init();
+	twi_init();
+
+	// Mantener A0 como entrada analogica
+	DDRC &= ~(1 << PC0);
+	PORTC &= ~(1 << PC0);
+
+	sei();
+
+	twi_lcd_init();
+	twi_lcd_cmd(0x0C);
+
+	for (uint8_t i = 0; i < LCD_CARACTERES; i++)
+	{
+		lcd_enviado[i] = '\0';
+	}
+
+	lcd_actualizar();
+
+	uint32_t ahora = millis_sistema();
+
+	#if WDT_MODO == WDT_MODO_RESET
+	uint32_t t_wdt_test = ahora;
+	#endif
+	uint32_t t_led = ahora;
+	uint32_t t_lcd = ahora;
+	uint32_t t_lcd_caracter = ahora;
+	uint32_t t_dht = ahora;
+	uint32_t t_actividad = ahora;
+	uint32_t t_buzzer = ahora;
+	uint32_t t_raw = ahora;
+	uint32_t t_presion = ahora;
+	uint32_t t_heartbeat = ahora;
+
+	uint8_t raw_prev =
+	(PIND & (1 << BOTON_PIN)) ? 1 : 0;
+
+	uint8_t boton_estable = raw_prev;
+
+	uint8_t pulsacion_larga = 0;
+	uint8_t recuperar_emergencia = 0;
+	uint8_t buzzer_temporizado = 0;
+	uint8_t pulsacion_por_int0 = 0;
+	uint8_t estado_anterior = estado;
+	uint8_t apagado_aviso_enviado = 0;
+	uint8_t standby_lcd_configurado = 0;
+	while (1)
+	{
+		ahora = millis_sistema();
+		#if WDT_MODO == WDT_MODO_RESET
+		if (watchdog_reset_test_active)
+		{
+			wdt_reset();
+			if ((uint32_t)(ahora - t_wdt_test) >= 5000UL)
+			{
+				watchdog_reset_test_active = 0;
+				PORTB &= ~(
+				(1 << LED_PIN) |
+				(1 << BUZZER_PIN)
+				);
+				twi_lcd_cmd(0x80);
+				twi_lcd_msg("Bloqueo simulado");
+				twi_lcd_cmd(0xC0);
+				twi_lcd_msg("Esperando reset");
+
+				for (;;)
+				{
+				}
+			}
+		}
+		#endif
+		protocol_poll(ahora);
+		process_com_commands(
+		ahora,
+		&t_actividad,
+		&t_led,
+		&buzzer_temporizado,
+		&apagado_aviso_enviado
+		);
+
+		// PULSADOR - ANTIRREBOTE E INT0
+		uint8_t raw =
+		(PIND & (1 << BOTON_PIN)) ? 1 : 0;
+
+		if (raw != raw_prev)
+		{
+			raw_prev = raw;
+			t_raw = ahora;
+		}
+
+		if (
+		raw != boton_estable &&
+		(uint32_t)(ahora - t_raw) >= ANTIRREBOTE
+		)
+		{
+			boton_estable = raw;
+
+			if (!boton_estable)
+			{
+				uint8_t s = SREG;
+				cli();
+
+				pulsacion_por_int0 = flag_boton;
+				flag_boton = 0;
+
+				SREG = s;
+
+				if (pulsacion_por_int0)
+				{
+					t_presion = ahora;
+					pulsacion_larga = 0;
+					recuperar_emergencia = 0;
+				}
+			}
+			else if (pulsacion_por_int0)
+			{
+				if (!pulsacion_larga)
+				{
+					if (estado != EMERGENCIA)
+					{
+						estado = ACTIVO;
+						t_actividad = ahora;
+						apagado_aviso_enviado = 0;
+
+						PORTB |= (1 << BUZZER_PIN);
+
+						buzzer_temporizado = 1;
+						t_buzzer = ahora;
+					}
+				}
+				else if (
+				estado == EMERGENCIA &&
+				recuperar_emergencia
+				)
+				{
+					estado = ACTIVO;
+					t_actividad = ahora;
+					t_led = ahora;
+					apagado_aviso_enviado = 0;
+
+					recuperar_emergencia = 0;
+				}
+
+				pulsacion_por_int0 = 0;
+			}
+		}
+
+		// PULSACION LARGA - EMERGENCIA
+		if (
+		!boton_estable &&
+		pulsacion_por_int0 &&
+		!pulsacion_larga &&
+		(uint32_t)(ahora - t_presion) >= TIEMPO_LARGO
+		)
+		{
+			pulsacion_larga = 1;
+
+			if (estado != EMERGENCIA)
+			{
+				estado = EMERGENCIA;
+
+				PORTB &= ~(
+				(1 << LED_PIN) |
+				(1 << BUZZER_PIN)
+				);
+
+				buzzer_temporizado = 0;
+				recuperar_emergencia = 0;
+			}
+			else
+			{
+				recuperar_emergencia = 1;
+			}
+		}
