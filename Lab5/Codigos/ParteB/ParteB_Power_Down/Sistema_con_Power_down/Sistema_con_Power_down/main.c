@@ -128,3 +128,391 @@ static void lcd_copiar_linea(uint8_t fila, const char *texto);
 void lcd_actualizar(void);
 void lcd_poll(uint32_t ahora, uint32_t *t_caracter);
 int main(void);
+static void sleep_idle(void)
+{
+	set_sleep_mode(SLEEP_MODE_IDLE);
+	cli();
+	sleep_enable();
+	sei();
+	sleep_cpu();
+	sleep_disable();
+}
+
+static void timers_standby_init(void)
+{
+	TCCR0A = (1 << WGM01);
+	TCCR0B = 0;
+	TCNT0 = 0;
+	OCR0A = 155;
+	TIFR0 = (1 << OCF0A);
+	TIMSK0 = (1 << OCIE0A);
+	TCCR0B = (1 << CS02) | (1 << CS00);
+}
+
+static uint8_t power_down_wait_button(void)
+{
+	if (
+	lcd_pendiente ||
+	lcd_twi_resultado == LCD_TWI_ACTIVO
+	)
+	{
+		return 0;
+	}
+
+	lcd &= ~(1 << 3);
+	PCF8574_write(lcd);
+	while (TWCR & (1 << TWSTO))
+	{
+	}
+
+	cli();
+	flag_boton = 0;
+	PCICR &= ~(1 << PCIE2);
+	TIMSK0 = 0;
+	TIMSK1 = 0;
+	TIMSK2 = 0;
+	TCCR0A = 0;
+	TCCR0B = 0;
+	TCCR1A = 0;
+	TCCR1B = 0;
+	TCCR2A = 0;
+	TCCR2B = 0;
+	ADCSRA = 0;
+	TWCR = 0;
+	UCSR0B = 0;
+	ACSR |= (1 << ACD);
+	PRR |= APAGADO_PRR_MASK;
+
+	EICRA = 0;
+	EIFR = (1 << INTF0);
+	EIMSK = (1 << INT0);
+	set_sleep_mode(SLEEP_MODE_PWR_DOWN);
+
+	if (!(PIND & (1 << BOTON_PIN)))
+	{
+		flag_boton = 1;
+	}
+
+	// Power-Down sin despertar periodico: la unica fuente
+	// de despertar es INT0 (nivel bajo del pulsador).
+	while (!flag_boton)
+	{
+		sleep_enable();
+		sleep_bod_disable();
+		sei();
+		sleep_cpu();
+		sleep_disable();
+		cli();
+	}
+
+	EIMSK = 0;
+	PRR &= ~APAGADO_PRR_MASK;
+	ACSR &= ~(1 << ACD);
+
+	timers_init();
+	adc_init();
+	twi_init();
+	DDRC &= ~(1 << PC0);
+	PORTC &= ~(1 << PC0);
+	twi_lcd_cmd(0x0C);
+
+	dht_estado = DHT_INACTIVO;
+	EICRA = (1 << ISC01);
+	EIFR = (1 << INTF0);
+	EIMSK = (1 << INT0);
+
+	estado = ACTIVO;
+	sei();
+	return 1;
+}
+
+void alarm_log(uint8_t code, uint8_t value)
+{
+	uint8_t index;
+
+	if (alarm_count < ALARM_CAPACITY)
+	{
+		index = (uint8_t)(
+		(alarm_head + alarm_count) % ALARM_CAPACITY
+		);
+		alarm_count++;
+	}
+	else
+	{
+		index = alarm_head;
+		alarm_head = (uint8_t)(
+		(alarm_head + 1U) % ALARM_CAPACITY
+		);
+	}
+
+	alarm_codes[index] = code;
+	alarm_values[index] = value;
+}
+
+// BASE TEMPORAL
+uint32_t millis_sistema(void)
+{
+	uint8_t s = SREG;
+	cli();
+
+	uint32_t t = tiempo_sistema;
+
+	SREG = s;
+	return t;
+}
+
+// INTERRUPCIONES DE TEMPORIZADORES
+ISR(TIMER0_COMPA_vect)
+{
+	if (estado == STANDBY)
+	{
+		tiempo_sistema += 10UL;
+	}
+	else
+	{
+		tiempo_sistema++;
+	}
+}
+
+ISR(TIMER1_COMPA_vect)
+{
+	if (estado == ACTIVO)
+	{
+		if (solicitudes_adc < 255)
+		{
+			solicitudes_adc++;
+		}
+		else if (adc_solicitudes_perdidas < 65535)
+		{
+			adc_solicitudes_perdidas++;
+		}
+	}
+}
+
+// INTERRUPCION EXTERNA INT0
+ISR(INT0_vect)
+{
+	flag_boton = 1;
+}
+
+// INTERRUPCION DHT11
+ISR(PCINT2_vect)
+{
+	if (dht_estado < DHT_RESP_LOW ||
+	dht_estado > DHT_MEDIR_HIGH)
+	return;
+
+	uint8_t alto =
+	(PIND & (1 << DHT_PIN)) != 0;
+
+	uint8_t tic = TCNT2;
+
+	if (dht_estado == DHT_RESP_LOW)
+	{
+		if (!alto)
+		dht_estado = DHT_RESP_HIGH;
+	}
+	else if (dht_estado == DHT_RESP_HIGH)
+	{
+		if (alto)
+		dht_estado = DHT_BIT_LOW;
+	}
+	else if (dht_estado == DHT_BIT_LOW)
+	{
+		if (!alto)
+		dht_estado = DHT_BIT_HIGH;
+	}
+	else if (dht_estado == DHT_BIT_HIGH)
+	{
+		if (alto)
+		{
+			dht_inicio_pulso = tic;
+			dht_estado = DHT_MEDIR_HIGH;
+		}
+	}
+	else if (dht_estado == DHT_MEDIR_HIGH && !alto)
+	{
+		uint8_t duracion = (uint8_t)(
+		tic - dht_inicio_pulso
+		);
+
+		if (duracion < 25U || duracion > 200U)
+		{
+			dht_estado = DHT_ERROR;
+			return;
+		}
+
+		uint8_t pos = dht_bits / 8U;
+
+		dht_datos[pos] = (uint8_t)(
+		(dht_datos[pos] << 1) |
+		(duracion >= 100U)
+		);
+
+		dht_bits++;
+
+		dht_estado =
+		(dht_bits == 40U) ?
+		DHT_TERMINADO :
+		DHT_BIT_HIGH;
+	}
+}
+
+// CONFIGURACION GPIO
+void gpio_init(void)
+{
+	DDRB |= (1 << LED_PIN) | (1 << BUZZER_PIN);
+
+	PORTB &= ~(
+	(1 << LED_PIN) |
+	(1 << BUZZER_PIN)
+	);
+
+	DDRD &= ~(
+	(1 << BOTON_PIN) |
+	(1 << DHT_PIN)
+	);
+
+	PORTD |=
+	(1 << BOTON_PIN) |
+	(1 << DHT_PIN);
+
+	DDRC &= ~(1 << PC0);
+	PORTC &= ~(1 << PC0);
+
+	// INT0: flanco descendente
+	EICRA = (1 << ISC01);
+	EIFR = (1 << INTF0);
+	EIMSK = (1 << INT0);
+
+	// DHT11: PCINT20
+	PCICR &= ~(1 << PCIE2);
+	PCMSK2 |= (1 << PCINT20);
+}
+
+// CONFIGURACION TEMPORIZADORES
+void timers_init(void)
+{
+	// TIMER0: base de 1 ms
+	TCCR0A = (1 << WGM01);
+	TCCR0B = (1 << CS01) | (1 << CS00);
+
+	TCNT0 = 0;
+	OCR0A = 249;
+	TIMSK0 = (1 << OCIE0A);
+
+	// TIMER1: interrupcion cada 100 ms
+	TCCR1A = 0;
+
+	TCCR1B =
+	(1 << WGM12) |
+	(1 << CS11) |
+	(1 << CS10);
+
+	TCNT1 = 0;
+	OCR1A = 24999;
+	TIMSK1 = (1 << OCIE1A);
+
+	// TIMER2: resolucion de 0.5 us
+	TCCR2A = 0;
+	TCCR2B = (1 << CS21);
+	TCNT2 = 0;
+}
+
+// ADC
+void adc_init(void)
+{
+	uint8_t s = SREG;
+	cli();
+
+	PRR &= ~(1 << PRADC);
+	ADCSRA = 0;
+	ADMUX = (1 << REFS0);
+	ADCSRB = 0;
+	DIDR0 |= (1 << ADC0D);
+
+	solicitudes_adc = 0;
+	adc_suma_muestras = 0;
+	adc_indice_muestra = 0;
+	adc_cantidad_muestras = 0;
+
+	ADCSRA =
+	(1 << ADEN) |
+	(1 << ADPS2) |
+	(1 << ADPS1) |
+	(1 << ADPS0);
+
+	(void)adc_convert_once();
+
+	SREG = s;
+}
+
+void adc_poll(void)
+{
+	uint8_t s = SREG;
+	cli();
+
+	uint8_t leer = (solicitudes_adc != 0);
+	solicitudes_adc = 0;
+
+	SREG = s;
+
+	if (!leer)
+	{
+		return;
+	}
+
+	ADMUX = (1 << REFS0);
+	valor_adc = adc_filtrar_muestra(adc_read_average());
+}
+
+static uint16_t adc_convert_once(void)
+{
+	ADCSRA |= (1 << ADSC);
+
+	while (ADCSRA & (1 << ADSC))
+	{
+	}
+
+	return ADC;
+}
+
+static uint16_t adc_read_average(void)
+{
+	uint32_t suma = 0;
+
+	for (uint8_t i = 0; i < ADC_RAW_SAMPLES; i++)
+	{
+		suma += adc_convert_once();
+	}
+
+	return (uint16_t)(
+	(suma + (ADC_RAW_SAMPLES / 2U)) / ADC_RAW_SAMPLES
+	);
+}
+
+static uint16_t adc_filtrar_muestra(uint16_t muestra)
+{
+	if (adc_cantidad_muestras < ADC_FILTER_SAMPLES)
+	{
+		adc_muestras[adc_indice_muestra] = muestra;
+		adc_suma_muestras += muestra;
+		adc_cantidad_muestras++;
+	}
+	else
+	{
+		adc_suma_muestras -= adc_muestras[adc_indice_muestra];
+		adc_muestras[adc_indice_muestra] = muestra;
+		adc_suma_muestras += muestra;
+	}
+
+	adc_indice_muestra++;
+	if (adc_indice_muestra >= ADC_FILTER_SAMPLES)
+	{
+		adc_indice_muestra = 0;
+	}
+
+	return (uint16_t)(
+	adc_suma_muestras / adc_cantidad_muestras
+	);
+}
