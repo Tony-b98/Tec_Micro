@@ -898,3 +898,204 @@ static void rx_iniciar_trama(void)
 	trama_ultimo_byte_ms = millis();
 	rx_estado = RX_TRAMA_BINARIA;
 }
+
+// MAQUINA DE ESTADOS DEL RECEPTOR UART
+
+static void recibir_uart(uint8_t c)
+{
+	switch (rx_estado)
+	{
+		case RX_ESPERA:
+		if (c == 0xAA)
+		{
+			// Inicio de trama binaria
+			rx_iniciar_trama();
+		}
+		else if (c == ':')
+		{
+			// Trama de prueba escrita en hexadecimal 
+			texto_hex_nibbles = 0U;
+			rx_estado = RX_TRAMA_HEX;
+		}
+		else
+		{
+			// Cualquier otro caracter es un comando ASCII
+			procesar((char)c);
+		}
+		break;
+
+		case RX_TRAMA_BINARIA:
+		// Si el byte llego tarde, la trama anterior se descarta
+		if ((uint32_t)(millis() - trama_ultimo_byte_ms)
+		>= PROTO_TIMEOUT_MS)
+		{
+			tramas_error++;
+			if (c == 0xAA)
+			{
+				rx_iniciar_trama();
+			}
+			else
+			{
+				trama_indice = 0U;
+				rx_estado = RX_ESPERA;
+			}
+			break;
+		}
+
+		trama[trama_indice++] = c;
+		trama_ultimo_byte_ms = millis();
+
+		if (trama_indice == 5U)
+		{
+			// Trama completa: volver a esperar y ejecutarla
+			trama_indice = 0U;
+			rx_estado = RX_ESPERA;
+			protocolo_verificar(trama);
+		}
+		break;
+
+		case RX_TRAMA_HEX:
+		{
+			// Diez caracteres hex = cinco bytes de trama
+			int8_t valor = hex_valor(c);
+			if (valor < 0)
+			{
+				texto_hex_nibbles = 0U;
+				rx_estado = RX_ESPERA;
+				usart_texto_P(PSTR("HEX: CARACTER INVALIDO\r\n"));
+				break;
+			}
+
+			if ((texto_hex_nibbles & 1U) == 0U)
+			{
+				texto_hex_bytes[texto_hex_nibbles / 2U] =
+				(uint8_t)((uint8_t)valor << 4);
+			}
+			else
+			{
+				texto_hex_bytes[texto_hex_nibbles / 2U] |=
+				(uint8_t)valor;
+			}
+
+			texto_hex_nibbles++;
+			if (texto_hex_nibbles == 10U)
+			{
+				texto_hex_nibbles = 0U;
+				rx_estado = RX_ESPERA;
+				protocolo_verificar(texto_hex_bytes);
+			}
+			break;
+		}
+
+		default:
+		rx_estado = RX_ESPERA;
+		break;
+	}
+}
+
+/* Si una trama binaria quedo a medias, se descarta por tiempo. */
+static void receptor_timeout(void)
+{
+	if (rx_estado == RX_TRAMA_BINARIA &&
+	(uint32_t)(millis() - trama_ultimo_byte_ms) >= PROTO_TIMEOUT_MS)
+	{
+		trama_indice = 0U;
+		rx_estado = RX_ESPERA;
+		tramas_error++;
+	}
+}
+
+// PROGRAMA PRINCIPAL
+
+int main(void)
+{
+	cli();
+
+	motores_init();
+
+	tiempo_init();
+
+	usart_init(9600);
+
+	servos_init();
+
+	sonar_init();
+
+	sei();
+
+	usart_texto_P(PSTR(
+	"\r\n"
+	"================================\r\n"
+	" ROBOT UTEC - ETAPA 5\r\n"
+	" TRACCION + SERVOS + ULTRASONICO\r\n"
+	"================================\r\n"
+	"\r\n"
+	"w = Avanzar\r\n"
+	"s = Retroceder\r\n"
+	"a = Girar izquierda\r\n"
+	"d = Girar derecha\r\n"
+	"q = Curva izquierda\r\n"
+	"e = Curva derecha\r\n"
+	"x = Detener\r\n"
+	"f = Freno\r\n"
+	"0-9 = Velocidad\r\n"
+	"l = Modo lento\r\n"
+	"r = Modo rapido\r\n"
+	"\r\n"
+	"o = Abrir pinza\r\n"
+	"c = Cerrar pinza\r\n"
+	"u = Subir torre\r\n"
+	"b = Bajar torre\r\n"
+	"h = Mantener servos\r\n"
+	"\r\n"
+	"t = Medir distancia (detenido)\r\n"
+	"? = Estado del robot\r\n"
+	"FAILSAFE: 300 ms sin orden de movimiento\r\n"
+	"HEX: :AA01C864AD = AVANZAR\r\n"
+	"HEX: :AA01646401 = PARAR\r\n"
+	"TRAMA: AA CMD D1 D2 CHECK\r\n"
+	"================================\r\n"
+	));
+
+	uint32_t t_motores = millis();
+	uint32_t t_servos = t_motores;
+
+	cambiar_estado(EST_DETENIDO);
+
+	while (1)
+	{
+		uint32_t ahora = millis();
+
+		// 1) Maquina de estados del robot (incluye el failsafe)
+		maquina_robot();
+
+		// 2) Rampa de los motores cada 10 ms
+		if ((uint32_t)(ahora - t_motores)
+		>= 10UL)
+		{
+			t_motores += 10UL;
+			motores_tarea();
+		}
+
+		// 3) Rampa de los servos cada 20 ms + estado de la pinza
+		if ((uint32_t)(ahora - t_servos)
+		>= SERVO_PERIODO_MS)
+		{
+			t_servos = ahora;
+			servos_tarea();
+			maquina_pinza();
+		}
+
+		// 4) Bytes recibidos por Bluetooth -> maquina del receptor
+		uint8_t leidos = 0;
+		while (usart_disponible() && leidos < 16U)
+		{
+			recibir_uart(usart_leer());
+			leidos++;
+		}
+
+		receptor_timeout();
+	}
+}
+
+
