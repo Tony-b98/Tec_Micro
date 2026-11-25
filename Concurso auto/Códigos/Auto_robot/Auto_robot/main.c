@@ -583,3 +583,318 @@ static const char *nombre_pinza_P(void)
         default:                    return PSTR("?");
     }
 }
+static void mostrar_estado(void)
+{
+	usart_texto_P(PSTR(
+	"\r\nESTADO DEL ROBOT\r\n"
+	));
+
+	usart_texto_P(PSTR("estado="));
+	usart_texto_P(nombre_estado_P());
+	usart_texto_P(PSTR(" pinza="));
+	usart_texto_P(nombre_pinza_P());
+	usart_texto_P(PSTR("\r\n"));
+
+	usart_texto_P(PSTR("vel="));
+	usart_numero(vel);
+
+	usart_texto_P(PSTR(" izq="));
+	usart_numero(motores_izq());
+
+	usart_texto_P(PSTR(" der="));
+	usart_numero(motores_der());
+
+	usart_texto_P(
+	motores_es_lento() ?
+	PSTR(" modo=lento\r\n") :
+	PSTR(" modo=rapido\r\n")
+	);
+
+	usart_texto_P(PSTR("pinza_us="));
+	usart_numero(pinza_us);
+
+	usart_texto_P(PSTR(" torre_us="));
+	usart_numero(torre_us);
+
+	usart_texto_P(PSTR("\r\n"));
+
+	usart_texto_P(PSTR("v_bin="));
+	usart_numero(v_bin);
+	usart_texto_P(PSTR(" w_bin="));
+	usart_numero(w_bin);
+	usart_texto_P(PSTR(" ok="));
+	usart_numero((int16_t)tramas_ok);
+	usart_texto_P(PSTR(" errores="));
+	usart_numero((int16_t)tramas_error);
+	usart_texto_P(PSTR("\r\n"));
+
+	if (sonar_valido)
+	{
+		usart_texto_P(PSTR("sonar="));
+		usart_numero(sonar_distancia_cm);
+
+		usart_texto_P(PSTR(" cm\r\n"));
+	}
+	else
+	{
+		usart_texto_P(PSTR(
+		"sonar=sin lectura valida\r\n"
+		));
+	}
+}
+
+// COMANDOS ASCII (generan los eventos de las maquinas de estados)
+
+static void procesar(char c)
+{
+	// Digitos 0-9: cambian la velocidad de los comandos ASCII
+	if (c >= '0' && c <= '9')
+	{
+		vel = (int16_t)(
+		((c - '0') * 255) / 9
+		);
+
+		if (estado == EST_MOVIENDO_ASCII)
+		{
+			aplicar_movimiento(ultimo);
+		}
+		mostrar_estado();
+		return;
+	}
+
+	switch (c)
+	{
+		case 'w':
+		case 's':
+		case 'a':
+		case 'd':
+		case 'q':
+		case 'e':
+		// Orden de movimiento -> EST_MOVIENDO_ASCII
+		v_bin = 0;
+		w_bin = 0;
+		ultima_orden_ms = millis();
+		aplicar_movimiento(c);
+		cambiar_estado(EST_MOVIENDO_ASCII);
+
+		usart_enviar((uint8_t)c);
+		usart_texto_P(PSTR("\r\n"));
+		break;
+
+		case 'x':
+		// Detener con rampa -> EST_DETENIDO
+		v_bin = 0;
+		w_bin = 0;
+		aplicar_movimiento(c);
+		cambiar_estado(EST_DETENIDO);
+
+		usart_enviar((uint8_t)c);
+		usart_texto_P(PSTR("\r\n"));
+		break;
+
+		case 'f':
+		// Freno inmediato -> EST_DETENIDO
+		motores_frenar();
+		ultimo = 'x';
+		v_bin = 0;
+		w_bin = 0;
+		cambiar_estado(EST_DETENIDO);
+
+		usart_texto_P(PSTR(
+		"freno\r\n"
+		));
+		break;
+
+		case 'l':
+		case 'r':
+		// Modo lento / rapido (no cambia el estado)
+		motores_modo_lento(c == 'l');
+		reaplicar_movimiento();
+		mostrar_estado();
+		break;
+
+		case 'o':
+		pinza_ordenar(0);
+
+		usart_texto_P(PSTR(
+		"ABRIENDO PINZA\r\n"
+		));
+		break;
+
+		case 'c':
+		pinza_ordenar(1);
+
+		usart_texto_P(PSTR(
+		"CERRANDO PINZA\r\n"
+		));
+		break;
+
+		case 'u':
+		torre_objetivo_us =
+		limitar_pulso(TORRE_ARRIBA_US);
+
+		usart_texto_P(PSTR(
+		"SUBIENDO TORRE\r\n"
+		));
+		break;
+
+		case 'b':
+		torre_objetivo_us =
+		limitar_pulso(TORRE_ABAJO_US);
+
+		usart_texto_P(PSTR(
+		"BAJANDO TORRE\r\n"
+		));
+		break;
+
+		case 'h':
+		pinza_objetivo_us = pinza_us;
+		torre_objetivo_us = torre_us;
+		pinza_estado = PINZA_EST_MANTENIDA;
+
+		usart_texto_P(PSTR(
+		"SERVOS: POSICION MANTENIDA\r\n"
+		));
+		break;
+
+		case 't':
+		// El sonar solo se usa con el robot quieto -> EST_MIDIENDO
+		if (estado != EST_DETENIDO ||
+		motores_izq() != 0 || motores_der() != 0)
+		{
+			usart_texto_P(PSTR(
+			"SONAR: DETENER RUEDAS ANTES DE MEDIR\r\n"
+			));
+		}
+		else
+		{
+			cambiar_estado(EST_MIDIENDO);
+		}
+		break;
+
+		case '?':
+		mostrar_estado();
+		break;
+
+		default:
+		break;
+	}
+}
+
+// PROTOCOLO BINARIO Y PRUEBAS HEXADECIMALES
+
+static uint8_t trama[5];
+static uint8_t trama_indice = 0;
+static uint32_t trama_ultimo_byte_ms = 0;
+
+static uint8_t texto_hex_nibbles = 0;
+static uint8_t texto_hex_bytes[5];
+
+static int8_t hex_valor(uint8_t c)
+{
+	if (c >= '0' && c <= '9') return (int8_t)(c - '0');
+	if (c >= 'A' && c <= 'F') return (int8_t)(c - 'A' + 10);
+	if (c >= 'a' && c <= 'f') return (int8_t)(c - 'a' + 10);
+	return -1;
+}
+
+static void protocolo_ejecutar(uint8_t cmd, uint8_t d1, uint8_t d2)
+{
+	int16_t v, w;
+
+	switch (cmd)
+	{
+		case 0x01: // MOVIMIENTO: v y w entre -100 y +100
+		if (d1 > 200U || d2 > 200U)
+		{
+			tramas_error++;
+			usart_texto_P(PSTR("TRAMA: MOVIMIENTO INVALIDO\r\n"));
+			return;
+		}
+
+		v = ((int16_t)d1 - 100) * 255 / 100;
+		w = ((int16_t)d2 - 100) * 255 / 100;
+
+		v_bin = v;
+		w_bin = w;
+		ultimo = 'x';
+		motores_mezcla(v, w);
+
+		ultima_orden_ms = millis();
+
+		// v = w = 0 es una orden de parar -> EST_DETENIDO
+		cambiar_estado((v != 0 || w != 0) ?
+		EST_MOVIENDO_BINARIO : EST_DETENIDO);
+		break;
+
+		case 0x02: // PINZA: d1 = 1 cerrar, d1 = 0 abrir
+		if (d2 != 0U || d1 > 1U)
+		{
+			tramas_error++;
+			usart_texto_P(PSTR("TRAMA: PINZA INVALIDA\r\n"));
+			return;
+		}
+		pinza_ordenar(d1);
+		break;
+
+		case 0x03: // MODO: d1 = 1 lento, d1 = 0 rapido
+		if (d2 != 0U || d1 > 1U)
+		{
+			tramas_error++;
+			usart_texto_P(PSTR("TRAMA: MODO INVALIDO\r\n"));
+			return;
+		}
+		motores_modo_lento(d1);
+		reaplicar_movimiento();
+		break;
+
+		case 0x04: // TORRE (extension de nuestro robot)
+		if (d2 != 0U || d1 > 1U)
+		{
+			tramas_error++;
+			usart_texto_P(PSTR("TRAMA: TORRE INVALIDA\r\n"));
+			return;
+		}
+		torre_objetivo_us = limitar_pulso(
+		d1 ? TORRE_ABAJO_US : TORRE_ARRIBA_US);
+		break;
+
+		default:
+		tramas_error++;
+		usart_texto_P(PSTR("TRAMA: CMD DESCONOCIDO\r\n"));
+		return;
+	}
+
+	tramas_ok++;
+	#if PROTO_DEBUG
+	usart_texto_P(PSTR("TRAMA OK\r\n"));
+	#endif
+}
+
+static void protocolo_verificar(const uint8_t *p)
+{
+	if (p[0] != 0xAA)
+	{
+		tramas_error++;
+		usart_texto_P(PSTR("TRAMA: INICIO INVALIDO\r\n"));
+		return;
+	}
+
+	if ((uint8_t)(p[1] ^ p[2] ^ p[3]) != p[4])
+	{
+		tramas_error++;
+		usart_texto_P(PSTR("TRAMA: CHECKSUM ERROR\r\n"));
+		return;
+	}
+
+	protocolo_ejecutar(p[1], p[2], p[3]);
+}
+
+/* Empieza a juntar una trama binaria (ya llego el 0xAA). */
+static void rx_iniciar_trama(void)
+{
+	trama[0] = 0xAA;
+	trama_indice = 1U;
+	trama_ultimo_byte_ms = millis();
+	rx_estado = RX_TRAMA_BINARIA;
+}
