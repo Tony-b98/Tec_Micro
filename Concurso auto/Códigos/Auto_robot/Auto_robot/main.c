@@ -452,3 +452,134 @@ static void reaplicar_movimiento(void)
 	}
 }
 
+// MAQUINA DE ESTADOS DEL ROBOT
+
+/* Unico punto donde se cambia el estado del robot. */
+static void cambiar_estado(estado_robot_t nuevo)
+{
+    estado = nuevo;
+}
+
+/*
+ * Se llama en cada vuelta del lazo principal.
+ * Cada case describe lo que el robot hace en ese estado y
+ * cuando pasa al siguiente.
+ */
+static void maquina_robot(void)
+{
+    switch (estado)
+    {
+        case EST_DETENIDO:
+            // Nada que hacer: motores_tarea() lleva las ruedas a 0
+            // con rampa. Se sale de aqui cuando llega un comando.
+            break;
+
+        case EST_MOVIENDO_ASCII:
+        case EST_MOVIENDO_BINARIO:
+            // FAILSAFE: la app manda ordenes seguido; si pasan
+            // FAILSAFE_MS sin ninguna, se perdio el Bluetooth.
+            if ((uint32_t)(millis() - ultima_orden_ms) >= FAILSAFE_MS)
+            {
+                cambiar_estado(EST_FAILSAFE);
+            }
+            break;
+
+        case EST_FAILSAFE:
+            // Freno inmediato y se olvida la ultima orden.
+            motores_frenar();
+            ultimo = 'x';
+            v_bin = 0;
+            w_bin = 0;
+
+            usart_texto_P(PSTR("FAILSAFE: MOTORES DETENIDOS\r\n"));
+
+            cambiar_estado(EST_DETENIDO);
+            break;
+
+        case EST_MIDIENDO:
+            // La medicion es corta (< 70 ms) y se hace de una vez.
+            sonar_medir();
+            cambiar_estado(EST_DETENIDO);
+            break;
+
+        default:
+            // Estado desconocido (no deberia pasar): parar por seguridad.
+            cambiar_estado(EST_FAILSAFE);
+            break;
+    }
+}
+
+// MAQUINA DE ESTADOS DE LA PINZA
+
+/* Ordena abrir o cerrar y pasa al estado "en movimiento". */
+static void pinza_ordenar(uint8_t cerrar)
+{
+    if (cerrar)
+    {
+        pinza_objetivo_us = limitar_pinza(PINZA_CERRADA_US);
+        pinza_estado = PINZA_EST_CERRANDO;
+    }
+    else
+    {
+        pinza_objetivo_us = limitar_pinza(PINZA_ABIERTA_US);
+        pinza_estado = PINZA_EST_ABRIENDO;
+    }
+}
+
+/* Se llama despues de mover los servos: detecta cuando la pinza llego. */
+static void maquina_pinza(void)
+{
+    switch (pinza_estado)
+    {
+        case PINZA_EST_ABRIENDO:
+            if (pinza_us == pinza_objetivo_us)
+            {
+                pinza_estado = PINZA_EST_ABIERTA;
+                usart_texto_P(PSTR("PINZA ABIERTA\r\n"));
+            }
+            break;
+
+        case PINZA_EST_CERRANDO:
+            if (pinza_us == pinza_objetivo_us)
+            {
+                pinza_estado = PINZA_EST_CERRADA;
+                usart_texto_P(PSTR("PINZA CERRADA\r\n"));
+            }
+            break;
+
+        case PINZA_EST_INICIO:
+        case PINZA_EST_ABIERTA:
+        case PINZA_EST_CERRADA:
+        case PINZA_EST_MANTENIDA:
+        default:
+            // Quieta: espera un comando nuevo.
+            break;
+    }
+}
+
+static const char *nombre_estado_P(void)
+{
+    switch (estado)
+    {
+        case EST_DETENIDO:          return PSTR("DETENIDO");
+        case EST_MOVIENDO_ASCII:    return PSTR("MOVIENDO_ASCII");
+        case EST_MOVIENDO_BINARIO:  return PSTR("MOVIENDO_BINARIO");
+        case EST_FAILSAFE:          return PSTR("FAILSAFE");
+        case EST_MIDIENDO:          return PSTR("MIDIENDO");
+        default:                    return PSTR("?");
+    }
+}
+
+static const char *nombre_pinza_P(void)
+{
+    switch (pinza_estado)
+    {
+        case PINZA_EST_INICIO:      return PSTR("INICIO");
+        case PINZA_EST_ABRIENDO:    return PSTR("ABRIENDO");
+        case PINZA_EST_ABIERTA:     return PSTR("ABIERTA");
+        case PINZA_EST_CERRANDO:    return PSTR("CERRANDO");
+        case PINZA_EST_CERRADA:     return PSTR("CERRADA");
+        case PINZA_EST_MANTENIDA:   return PSTR("MANTENIDA");
+        default:                    return PSTR("?");
+    }
+}
